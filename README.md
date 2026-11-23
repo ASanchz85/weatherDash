@@ -1,6 +1,6 @@
 # Personal Dashboard
 
-Dashboard personal de uso local, pensado para permanecer abierto en una pantalla mediante Chromium en modo kiosk (objetivo: Raspberry Pi 3B). El MVP muestra:
+Dashboard personal de uso local, pensado para permanecer abierto en una pantalla mediante Google Chrome en modo kiosk (objetivo: Fedora KDE Plasma). El MVP muestra:
 
 - Fecha y hora local en español, con segundos.
 - Meteorología actual de una localidad configurable (por defecto Navaluenga, Ávila), obtenida de [Open-Meteo](https://open-meteo.com/).
@@ -9,7 +9,27 @@ Dashboard personal de uso local, pensado para permanecer abierto en una pantalla
 
 - Node.js 22 LTS o superior (probado con 22.23).
 - npm 10 o superior.
+- Google Chrome (solo para el modo kiosk).
+- `curl` (lo usa `scripts/kiosk.sh` para esperar al backend).
 - Acceso a Internet desde el backend para consultar Open-Meteo (no requiere API key).
+
+### Fedora KDE Plasma
+
+Todas las dependencias están en los repositorios oficiales. No hace falta toolchain de compilación (`gcc`, `make`, `python3`): el proyecto no tiene módulos nativos y `esbuild`/`rollup` se instalan como binarios precompilados.
+
+```bash
+# Node.js 22 y npm (Fedora empaqueta versiones paralelas: nodejs20, nodejs22, nodejs24…)
+sudo dnf install nodejs22 nodejs22-npm nodejs22-full-i18n curl
+
+# Google Chrome: activar el repositorio de terceros de Fedora e instalarlo
+sudo dnf install fedora-workstation-repositories
+sudo dnf config-manager setopt google-chrome.enabled=1
+sudo dnf install google-chrome-stable
+```
+
+- `nodejs22-full-i18n` aporta los datos ICU completos. Sin ellos, el formateo `Intl` en español (`es-ES`) de los tests de Vitest puede caer a inglés.
+- Si prefieres no usar el repositorio de Google, Chromium (`sudo dnf install chromium`) también sirve: `CHROME_BIN=chromium-browser scripts/kiosk.sh`.
+- Plasma 6 usa Wayland por defecto; el script lanza Chrome con `--ozone-platform-hint=auto` para que funcione de forma nativa en Wayland (y en X11 si se usa).
 
 ## Instalación
 
@@ -27,6 +47,7 @@ cp .env.example .env   # y ajusta los valores si es necesario
 | `npm run start`     | Backend en producción sirviendo el frontend compilado (requiere `build`).     |
 | `npm run test`      | Pruebas de ambos proyectos con Vitest.                                       |
 | `npm run typecheck` | Comprobación de tipos de ambos proyectos.                                    |
+| `scripts/kiosk.sh`  | Compila, arranca el backend en producción y abre Chrome en pantalla completa (modo kiosk). `--skip-build` omite la compilación. |
 
 En desarrollo abre <http://localhost:5173>: Vite reenvía `/api` al backend, por lo que no se necesita CORS. En producción abre <http://localhost:3000>.
 
@@ -132,13 +153,22 @@ apps/
 - Todas las respuestas se validan con Zod; un formato inesperado se trata como un fallo del proveedor.
 - Uso no comercial gratuito y sin API key. Con la caché de 15 minutos el dashboard realiza ~96 peticiones diarias, muy por debajo de los límites.
 
-## Despliegue futuro en modo kiosk (Raspberry Pi 3B)
+## Modo kiosk (Fedora KDE Plasma)
 
-No está automatizado todavía; el procedimiento previsto es:
+### Ejecución manual
 
-1. Raspberry Pi OS (64 bits, con escritorio) y Node.js 22 LTS para ARM64.
+```bash
+scripts/kiosk.sh              # npm run build + backend en producción + Chrome a pantalla completa
+scripts/kiosk.sh --skip-build # reutiliza la compilación existente
+```
+
+El script instala dependencias si falta `node_modules`, espera a que `/api/health` responda y abre Chrome con `--kiosk` sobre `http://localhost:<PORT>`. Usa un perfil de Chrome propio (`~/.cache/weatherdash-kiosk`) para que el modo kiosk funcione aunque Chrome ya esté abierto con el perfil habitual. Se sale con `Alt+F4`; al cerrarse Chrome (o con `Ctrl+C`) se detiene también el backend. Variables opcionales: `CHROME_BIN` (navegador) y `PORT`.
+
+### Arranque automático (no automatizado todavía)
+
+1. Instalar las dependencias de [Fedora KDE Plasma](#fedora-kde-plasma).
 2. Copiar el proyecto, `npm ci`, `npm run build` y, opcionalmente, `npm prune --omit=dev` para reducir espacio.
-3. Ejecutar el backend como servicio systemd, por ejemplo `/etc/systemd/system/dashboard.service`:
+3. Ejecutar el backend como servicio systemd, por ejemplo `/etc/systemd/system/dashboard.service` (sustituye `<usuario>`):
 
    ```ini
    [Unit]
@@ -147,26 +177,37 @@ No está automatizado todavía; el procedimiento previsto es:
    Wants=network-online.target
 
    [Service]
-   WorkingDirectory=/home/pi/personal-dashboard
+   WorkingDirectory=/home/<usuario>/WeatherDash
    ExecStart=/usr/bin/node apps/backend/dist/server.js
    Environment=NODE_ENV=production
    Environment=HOST=127.0.0.1
    Restart=always
-   User=pi
+   User=<usuario>
 
    [Install]
    WantedBy=multi-user.target
    ```
 
-4. Lanzar Chromium al iniciar la sesión gráfica (autostart de labwc/LXDE):
-
    ```bash
-   chromium-browser --kiosk --noerrdialogs --disable-infobars --incognito \
-     --disable-translate --check-for-update-interval=31536000 \
-     http://localhost:3000
+   sudo systemctl daemon-reload && sudo systemctl enable --now dashboard.service
    ```
 
-5. Desactivar el salvapantallas/apagado de pantalla y ocultar el cursor (p. ej. `unclutter`).
+   Si SELinux impide ejecutar el servicio desde `/home`, revisa `sudo ausearch -m avc -ts recent` o instala el proyecto en `/opt`.
+
+4. Lanzar Chrome al iniciar la sesión de Plasma: *Preferencias del sistema → Arranque y apagado → Autoarranque → Añadir aplicación*, o crear `~/.config/autostart/dashboard-kiosk.desktop`:
+
+   ```ini
+   [Desktop Entry]
+   Type=Application
+   Name=Dashboard kiosk
+   Exec=google-chrome-stable --kiosk --ozone-platform-hint=auto --user-data-dir=%h/.cache/weatherdash-kiosk --no-first-run --noerrdialogs --disable-infobars --disable-translate --disable-session-crashed-bubble --check-for-update-interval=31536000 http://localhost:3000
+   X-KDE-autostart-phase=2
+   ```
+
+   (Si no se usa el servicio systemd, el `Exec` puede apuntar directamente a `scripts/kiosk.sh --skip-build`.)
+
+5. Evitar que la pantalla se bloquee o se apague: en *Preferencias del sistema → Bloqueo de pantalla* desactivar el bloqueo automático, y en *Energía* desactivar el apagado de pantalla y la suspensión. Para iniciar sin contraseña, activar el inicio de sesión automático en *Preferencias del sistema → Inicio de sesión (SDDM)*.
+6. Ocultar el cursor: `unclutter` solo funciona en X11, no en la sesión Wayland por defecto de Plasma. La opción más sencilla es dejar el equipo sin ratón conectado o mover el cursor a un borde de la pantalla.
 
 ## Fuentes y recursos
 

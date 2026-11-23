@@ -15,10 +15,10 @@
 - **Validación en el frontend**: se valida la respuesta de la API local con un validador manual (`parseWeatherData`) para no añadir Zod al bundle.
 - **`@testing-library/user-event` no instalado**: el MVP no tiene interacción de usuario que probar. Se añadirá cuando exista (p. ej. un selector de localidad).
 - **Script `start` del backend**: usa `NODE_ENV=production node …`, sintaxis de shell POSIX. En Windows habría que usar `cross-env` o definir `NODE_ENV` en `.env`.
-- **Sin logs en fichero ni rotación**: Fastify registra en stdout en JSON; en la Raspberry Pi se recogerán con journald a través de systemd.
+- **Sin logs en fichero ni rotación**: Fastify registra en stdout en JSON; en Fedora se recogerán con journald a través de systemd.
 - **Sin tests end-to-end ni de regresión visual**: las capturas en 1920×1080, 1366×768, 1280×720 y 1080×1920 se revisaron manualmente con Chrome headless.
 
 ## Despliegue
 
-- El arranque automático en modo kiosk (systemd + Chromium) está documentado en el README, pero no automatizado.
-- No se ha medido todavía el consumo real en una Raspberry Pi 3B; la estimación se basa en el tamaño del bundle (~52 KB gzip), la ausencia de animaciones y un único temporizador por segundo.
+- `scripts/kiosk.sh` compila y abre Chrome en modo kiosk de forma manual; el arranque automático al iniciar sesión (systemd + autoarranque de Plasma) está documentado en el README, pero no automatizado.
+- No se ha medido todavía el consumo real en el equipo Fedora KDE de destino; la estimación se basa en el tamaño del bundle (~52 KB gzip), la ausencia de animaciones y un único temporizador por segundo.

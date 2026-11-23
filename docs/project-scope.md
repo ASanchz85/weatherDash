@@ -364,9 +364,9 @@ Un error meteorológico nunca debe impedir mostrar el reloj.
 
 ---
 
-## 7. Rendimiento y compatibilidad con Raspberry Pi 3B
+## 7. Rendimiento y compatibilidad con Fedora KDE Plasma
 
-La aplicación debe poder ejecutarse posteriormente en una Raspberry Pi 3B con 1 GB de RAM.
+La aplicación debe poder ejecutarse en un equipo con Fedora KDE Plasma (Wayland), consumiendo los mínimos recursos posibles para que pueda permanecer abierta de forma continua.
 
 Prioridades:
 
@@ -383,9 +383,9 @@ Utilizar compilación de producción para el despliegue.
 
 El backend debe servir el frontend compilado para evitar necesitar un servidor de desarrollo Vite en producción.
 
-El navegador previsto será Chromium en modo kiosk.
+El navegador previsto será Google Chrome en modo kiosk.
 
-No es necesario implementar todavía la configuración del sistema operativo ni el arranque automático de Chromium, pero documentar cómo se ejecutará posteriormente.
+No es necesario implementar todavía la configuración del sistema operativo ni el arranque automático de Chrome, pero documentar cómo se ejecutará posteriormente.
 
 ---
 
