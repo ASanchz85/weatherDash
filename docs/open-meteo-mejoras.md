@@ -4,11 +4,14 @@ Documento de investigación para iterar sobre el dashboard. No describe trabajo 
 
 Estado de verificación: **Verificado** significa que se consultó la API real para Navaluenga el 2026-11-23; **Por verificar** significa que solo se ha leído la documentación.
 
+Estado de implementación: las ideas marcadas como **Implementado** ya están en la app (ver el [README](../README.md)); el resto sigue siendo investigación.
+
 ## 1. Qué usa la app hoy
 
 | Endpoint | Variables | Uso |
 | --- | --- | --- |
-| `api.open-meteo.com/v1/forecast` | `current`: `temperature_2m`, `apparent_temperature`, `relative_humidity_2m`, `wind_speed_10m`, `weather_code`, `is_day`, `precipitation_probability`; `daily`: `temperature_2m_max`, `temperature_2m_min`; `forecast_days=1` | Panel meteorológico |
+| `api.open-meteo.com/v1/forecast` | `current`: `temperature_2m`, `apparent_temperature`, `relative_humidity_2m`, `wind_speed_10m`, `wind_direction_10m`, `wind_gusts_10m`, `pressure_msl`, `cloud_cover`, `weather_code`, `is_day`, `precipitation_probability`; `daily`: `weather_code`, `temperature_2m_max`, `temperature_2m_min`, `precipitation_probability_max`; `hourly`: `temperature_2m`, `precipitation_probability`; `forecast_days=7`, `forecast_hours=24` | Card lateral (tiempo y viento), franja inferior (semana y horas) y tema día/noche |
+| `air-quality-api.open-meteo.com/v1/air-quality` | `current`: `european_aqi`, `pm2_5`, `dust`, `uv_index`, `olive_pollen`, `grass_pollen` | Vista «Viento y aire» |
 | `geocoding-api.open-meteo.com/v1/search` | `name`, `countryCode`, `language=es`, `count=1` | Resolver la localidad al arrancar |
 
 La previsión semanal (iteración en curso) amplía `daily` con `weather_code` y `precipitation_probability_max`, y sube a `forecast_days=7`.
@@ -25,9 +28,9 @@ No todas las peticiones cuentan como una llamada. Según la página de precios, 
 
 $$\text{coste} \approx \max\left(1, \frac{\text{variables}}{10}\right) \times \max\left(1, \frac{\text{días}}{14}\right)$$
 
-- Hoy: 9 variables × 1 día → 1 llamada por consulta.
-- Con la previsión semanal: 11 variables × 7 días → ~1,1 llamadas.
-- Con la caché de 15 minutos son 96 consultas al día por endpoint. Cada endpoint nuevo consultado con ese ritmo suma ~96 llamadas/día; con TTL mayores, menos. Aun sumando varios, el uso queda muy por debajo de las 10.000 diarias.
+- Antes de la previsión semanal: 9 variables × 1 día → 1 llamada por consulta.
+- Hoy: 17 variables (11 actuales, 4 diarias y 2 horarias) × 7 días → ~1,7 llamadas por consulta de previsión, más 1 de calidad del aire (6 variables).
+- Con la caché de 15 minutos son 96 consultas de previsión al día (~163 llamadas) y ~24 de calidad del aire (caché de al menos 1 hora): unas 190 llamadas diarias en total. Cada endpoint nuevo consultado con ritmo de 15 minutos suma ~96 llamadas/día; con TTL mayores, menos. El uso queda muy por debajo de las 10.000 diarias.
 - Atención al histórico: un rango de varios años cuenta como cientos de llamadas (ver 4.4); debe pedirse una vez al día como máximo y cachearse.
 
 ## 3. Mejoras con el mismo endpoint de previsión
@@ -48,15 +51,17 @@ Coste adicional: ninguno o fraccionado. Son las de mejor relación valor/esfuerz
 
 `weather_code` diario es la condición más severa del día, no la predominante: puede mostrar lluvia en un día mayormente soleado.
 
-### 3.2 Variables actuales adicionales (`current=`)
+### 3.2 Variables actuales adicionales (`current=`) — Implementado
 
-Verificado: `pressure_msl` (1024,9 hPa), `wind_direction_10m` (90°), `cloud_cover` (96 %) y `wind_gusts_10m` (6,1 km/h).
+Verificado: `pressure_msl` (1024,9 hPa), `wind_direction_10m` (90°), `cloud_cover` (96 %) y `wind_gusts_10m` (6,1 km/h). La app muestra la dirección con una rosa de los vientos, las rachas junto al viento, y la presión y la nubosidad en fichas (vista «Viento y aire»). Queda pendiente la tendencia de la presión.
 
 - Dirección del viento con rosa/flecha junto a la velocidad actual.
 - Presión y tendencia (comparando con la hora anterior en datos horarios).
 - Racha máxima junto al viento medio.
 
-### 3.3 Datos horarios (`hourly=`)
+### 3.3 Datos horarios (`hourly=`) — Implementado
+
+La franja inferior alterna con una gráfica de las próximas 24 horas (línea de temperatura y barras de probabilidad de lluvia) en SVG propio, con `forecast_hours=24` y las variables `temperature_2m` y `precipitation_probability`. Quedan sin usar `precipitation`, `cloud_cover`, `pressure_msl` y `visibility` por hora.
 
 - Gráfica de temperatura de las próximas 24 h y barras de probabilidad de lluvia, como las secciones "Today temperature" y "Rain chances" de la referencia visual ([weather_dash_example.webp](weather_dash_example.webp)). Variables: `temperature_2m`, `precipitation_probability`, `precipitation`.
 - Se limita el volumen con `forecast_hours=24` en lugar de `forecast_days`.
@@ -74,7 +79,7 @@ Verificado: `pressure_msl` (1024,9 hPa), `wind_direction_10m` (90°), `cloud_cov
 
 Cada API tiene su propio host y comparte formato y parámetros con la de previsión. Todas son gratuitas para uso no comercial.
 
-### 4.1 Calidad del aire y polen (Verificado)
+### 4.1 Calidad del aire y polen (Verificado) — Implementado
 
 - Endpoint: `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=…&longitude=…&current=european_aqi,pm2_5,dust,olive_pollen,grass_pollen,uv_index`
 - Respuesta real para Navaluenga: `european_aqi` 22 (aceptable; la escala va de 0-20 bueno a más de 100 extremadamente malo), `pm2_5` 2,6 µg/m³, `dust` 0,0, polen de olivo y gramíneas 0,0 granos/m³, `uv_index` 2,45. El intervalo de `current` es de 3.600 s.
@@ -82,7 +87,7 @@ Cada API tiene su propio host y comparte formato y parámetros con la de previsi
 - Datos: CAMS europeo a ~11 km, actualizado cada 24 h; el global, cada 12 h.
 - Caché sugerida: 1 a 3 horas. Coste: una consulta más por ciclo, bien por debajo del límite.
 - Idea: tarjeta o indicador discreto con el índice de calidad del aire y, solo en temporada, el polen de olivo y gramíneas.
-- Por verificar: valores `null` de polen fuera de temporada y cómo mostrarlos.
+- Verificado después: fuera de temporada el polen llega como `0,0` (Navaluenga, noviembre) y fuera de Europa como `null`, tanto en `current` como en `hourly`. La app lo muestra como «Sin polen» y «—» respectivamente. Implementado en la vista «Viento y aire»: índice con su nivel, PM2,5, polvo, polen (especie dominante) y UV; la caché es `max(WEATHER_REFRESH_INTERVAL, 1 h)` y no afecta a la previsión si falla.
 
 ### 4.2 Caudal del río (Flood API) (Verificado)
 
@@ -124,9 +129,9 @@ Cada API tiene su propio host y comparte formato y parámetros con la de previsi
 
 ## 5. Mejoras de arquitectura asociadas
 
-- **Aislar módulos secundarios**: la calidad del aire, el caudal o el histórico no deben invalidar la previsión principal. Cada uno puede tener su propio servicio, TTL y estado `stale`, siguiendo el patrón de `weather.service.ts`. Podrían exponerse como endpoints independientes (por ejemplo `/api/air-quality`) y que el frontend los consulte con hooks propios, como `useWeather`.
-- **Proveedor multi-endpoint**: hoy `weather.provider.ts` conoce una sola URL de previsión; añadir hosts nuevos exige ampliar el contrato `WeatherProvider` o crear proveedores hermanos, manteniendo que solo ellos conocen Open-Meteo.
-- **Errores del proveedor**: Open-Meteo responde a una petición inválida con HTTP 400 y `{ "error": true, "reason": "…" }`. El proveedor actual solo registra el código HTTP; incluir `reason` en el mensaje facilita diagnosticar un campo mal escrito.
+- **Aislar módulos secundarios** — Implementado: la calidad del aire tiene su propio servicio, caché y estado `stale` y se expone en `/api/air-quality`, con consulta independiente en el frontend (`useDashboardData`). Un fallo no invalida la previsión. Pendiente para el caudal del río o el histórico.
+- **Proveedor multi-endpoint** — Implementado: `open-meteo.client.ts` concentra el acceso HTTP y cada API tiene su proveedor hermano; la localidad se resuelve una vez en `location.service.ts`; la caché es el helper genérico `shared/cached-resource.ts`.
+- **Errores del proveedor**: Open-Meteo responde a una petición inválida con HTTP 400 y `{ "error": true, "reason": "…" }`. El cliente solo registra el código HTTP; incluir `reason` en el mensaje facilita diagnosticar un campo mal escrito.
 - **Contrato compartido**: cada campo nuevo se duplica en backend y frontend (`weather.types.ts`, `types/weather.ts` y el validador manual). Con más módulos compensa extraer `packages/shared` (ya anotado en `limitaciones.md`).
 - **Configuración por módulos**: activar o desactivar cada módulo adicional con variables de entorno, para que el dashboard mínimo siga funcionando sin ellos.
 
@@ -134,25 +139,25 @@ Cada API tiene su propio host y comparte formato y parámetros con la de previsi
 
 Todas respetan el criterio del proyecto: sin animaciones constantes y sin librerías pesadas.
 
-- **Tema día/noche** con `sunrise`/`sunset` reales: oscurecer algo más la superficie de noche.
-- **Rosa de los vientos** compacta con `wind_direction_10m`.
-- **Gráfica horaria** de temperatura y lluvia en SVG propio (3.3).
-- **Avisos discretos** como el badge de datos desactualizados: UV alto, rachas fuertes, calidad del aire mala.
-- **Rotación lenta de tarjetas secundarias** (por ejemplo, calidad del aire y caudal alternando en una misma zona cada varios minutos) para no saturar la pantalla; evitar transiciones animadas.
+- **Tema día/noche** — Implementado con la foto nocturna y `is_day` (no con `sunrise`/`sunset`, que seguiría pendiente): solo cambia la foto, los colores se mantienen.
+- **Rosa de los vientos** compacta con `wind_direction_10m` — Implementado.
+- **Gráfica horaria** de temperatura y lluvia en SVG propio (3.3) — Implementado.
+- **Avisos discretos** como el badge de datos desactualizados: UV alto, rachas fuertes, calidad del aire mala. Pendiente (la calidad del aire ya se tinta según su nivel).
+- **Rotación lenta de tarjetas secundarias** — Implementado: la card lateral y la franja inferior alternan sus vistas cada `UI_ROTATION_INTERVAL` con un fundido breve. El caudal del río podría sumarse como una vista más.
 
 ## 7. Priorización
 
-| # | Idea | Valor | Esfuerzo | Llamadas extra | Dependencias |
-| --- | --- | --- | --- | --- | --- |
-| 1 | Sunrise/sunset y tema día/noche (3.1) | Medio | Bajo | Ninguna | Previsión semanal |
-| 2 | UV máximo, rachas y precipitación acumulada diarios (3.1) | Medio | Bajo | Ninguna | Previsión semanal |
-| 3 | Dirección del viento, presión y racha actuales (3.2) | Medio | Bajo | Ninguna | — |
-| 4 | Gráfica horaria de temperatura y lluvia (3.3) | Alto | Medio | Ninguna | — |
-| 5 | Provincia y altitud desde el geocoding (4.3) | Bajo | Bajo | Ninguna | — |
-| 6 | Calidad del aire y polen (4.1) | Medio | Medio | ~24-96/día | Proveedor multi-endpoint |
-| 7 | Caudal del río (4.2) | Medio (identidad local) | Medio | ~4-96/día | Proveedor multi-endpoint |
-| 8 | "Hace un año" con histórico (4.4) | Bajo | Medio | Pocas | Proveedor multi-endpoint |
-| 9 | Selector de localidad (4.3) | Medio | Alto | Pocas | Fuera de alcance del MVP |
-| 10 | Rangos de incertidumbre con ensemble (4.5) | Bajo | Alto | Por verificar | — |
+| # | Idea | Valor | Esfuerzo | Llamadas extra | Dependencias | Estado |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Sunrise/sunset y tema día/noche (3.1) | Medio | Bajo | Ninguna | Previsión semanal | Parcial (tema con `is_day`; sin orto y ocaso) |
+| 2 | UV máximo, rachas y precipitación acumulada diarios (3.1) | Medio | Bajo | Ninguna | Previsión semanal | Pendiente |
+| 3 | Dirección del viento, presión y racha actuales (3.2) | Medio | Bajo | Ninguna | — | Implementado |
+| 4 | Gráfica horaria de temperatura y lluvia (3.3) | Alto | Medio | Ninguna | — | Implementado |
+| 5 | Provincia y altitud desde el geocoding (4.3) | Bajo | Bajo | Ninguna | — | Pendiente |
+| 6 | Calidad del aire y polen (4.1) | Medio | Medio | ~24-96/día | Proveedor multi-endpoint | Implementado |
+| 7 | Caudal del río (4.2) | Medio (identidad local) | Medio | ~4-96/día | Proveedor multi-endpoint | Pendiente |
+| 8 | "Hace un año" con histórico (4.4) | Bajo | Medio | Pocas | Proveedor multi-endpoint | Pendiente |
+| 9 | Selector de localidad (4.3) | Medio | Alto | Pocas | Fuera de alcance del MVP | Pendiente |
+| 10 | Rangos de incertidumbre con ensemble (4.5) | Bajo | Alto | Por verificar | — | Pendiente |
 
-Orden recomendado: 1-3 en la misma iteración (solo tocan el endpoint de previsión), después 4 y finalmente los módulos con endpoint propio (6 y 7), tras aislar el proveedor como se describe en la sección 5.
+Siguientes candidatas: el caudal del río (7), que ya cuenta con el proveedor multi-endpoint y con la rotación para añadirlo como vista, y las variables diarias de la tabla 3.1 (2), que solo amplían el endpoint de previsión.

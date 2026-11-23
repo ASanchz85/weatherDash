@@ -2,9 +2,18 @@
 
 Dashboard personal de uso local, pensado para permanecer abierto en una pantalla mediante Google Chrome en modo kiosk (objetivo: Fedora KDE Plasma). El MVP muestra:
 
-- Fecha y hora local en español, con segundos, en la esquina superior izquierda del panel principal.
+- Fecha y hora local en español, con segundos, en la esquina superior izquierda del panel principal, sobre una foto de día o de noche según la hora real de la localidad.
 - Meteorología actual de una localidad configurable (por defecto Navaluenga, Ávila), obtenida de [Open-Meteo](https://open-meteo.com/).
-- Predicción de 7 días (hoy + 6) en una franja inferior a ancho completo: día, icono, máxima/mínima y probabilidad máxima de precipitación.
+- Viento (con rosa de los vientos), presión, nubosidad y calidad del aire (índice europeo, PM2,5, polvo, polen y UV), también de Open-Meteo.
+- Predicción de 7 días (hoy + 6) y gráfica de las próximas 24 horas (temperatura y probabilidad de lluvia) en una franja inferior a ancho completo.
+
+La card lateral y la franja inferior **alternan sus vistas** cada 5 minutos (configurable) con un fundido suave:
+
+| Espacio | Vista 1 | Vista 2 |
+| --- | --- | --- |
+| Panel principal | Reloj sobre la foto (día o noche) | — |
+| Card lateral | Tiempo actual | Viento y calidad del aire |
+| Franja inferior | Predicción de 7 días | Próximas 24 horas |
 
 Ideas de mejora futura basadas en Open-Meteo: [`docs/open-meteo-mejoras.md`](docs/open-meteo-mejoras.md).
 
@@ -68,7 +77,24 @@ npm run build && npm run start          # en otra terminal
 npm run screenshots -- --label=baseline # capturas en /tmp/weatherdash-screenshots/baseline
 ```
 
-Opciones: `--label` (subcarpeta de salida), `--url` (por defecto `http://localhost:$PORT` o 3000; usa `http://localhost:5173` con `npm run dev`) y `--out` (directorio de salida). Respeta `CHROME_BIN`. Termina con código distinto de 0 si hay errores. Las capturas no se guardan en el repositorio; compara a ojo las de distintas etiquetas.
+Opciones: `--label` (subcarpeta de salida), `--url` (por defecto `http://localhost:$PORT` o 3000; usa `http://localhost:5173` con `npm run dev`), `--query` (parámetros de URL de depuración, ver más abajo) y `--out` (directorio de salida). Respeta `CHROME_BIN`. Termina con código distinto de 0 si hay errores. Las capturas no se guardan en el repositorio; compara a ojo las de distintas etiquetas.
+
+El hero tiene dos capas de foto (día y noche) y el script comprueba cada una. Para revisar todas las variantes tras un cambio de interfaz:
+
+```bash
+for query in page=0 page=1 "page=0&theme=day" "page=1&theme=night"; do
+  npm run screenshots -- --label="${query//[&=]/-}" --query="$query"
+done
+```
+
+### Parámetros de depuración
+
+Solo para desarrollo y capturas; se ignoran si no son válidos.
+
+| Parámetro | Efecto |
+| --- | --- |
+| `?page=N` | Fija la página mostrada (0 = tiempo y semana, 1 = viento y aire y próximas horas) y desactiva la rotación. |
+| `?theme=day` / `?theme=night` | Fuerza la foto de día o de noche, sin esperar a los datos ni a la rotación. |
 
 ## Configuración (variables de entorno)
 
@@ -86,8 +112,9 @@ El backend lee el fichero `.env` de la raíz del repositorio (ver `.env.example`
 | `WEATHER_LATITUDE`               | —               | Latitud explícita. Si se define junto a la longitud, no se usa geocoding.         |
 | `WEATHER_LONGITUDE`              | —               | Longitud explícita.                                                               |
 | `WEATHER_TIMEZONE`               | zona del geocoding | Zona horaria IANA para los extremos diarios (p. ej. `Europe/Madrid`).          |
-| `WEATHER_REFRESH_INTERVAL`       | `900000`        | Validez de la caché meteorológica en ms (mínimo 60000).                           |
+| `WEATHER_REFRESH_INTERVAL`       | `900000`        | Ciclo de actualización de los datos en ms (mínimo 60000): validez de la caché meteorológica y cadencia con la que el frontend vuelve a consultar. La calidad del aire se cachea al menos 1 hora. |
 | `WEATHER_REQUEST_TIMEOUT`        | `8000`          | Timeout de cada petición a Open-Meteo en ms.                                      |
+| `UI_ROTATION_INTERVAL`           | `300000`        | Tiempo entre cambios de vista en ms (5 minutos). `0` desactiva la rotación; si no es 0, mínimo 10000. |
 
 La configuración se valida con Zod al arrancar; un valor inválido detiene el servidor con un mensaje descriptivo.
 
@@ -100,12 +127,17 @@ apps/
 ├── backend/                     Fastify + TypeScript
 │   └── src/
 │       ├── config/              env.ts (validación Zod), paths.ts
+│       ├── shared/              cached-resource.ts (caché con petición compartida y datos desactualizados), service-logger.ts
 │       ├── modules/
 │       │   ├── health/          GET /api/health
+│       │   ├── ui/              GET /api/config (configuración de la interfaz, p. ej. intervalo de rotación)
+│       │   ├── location/        localidad resuelta una sola vez (geocoding o coordenadas) y compartida
+│       │   ├── open-meteo/      cliente HTTP común (timeout, estado HTTP, validación con Zod)
+│       │   ├── air-quality/     GET /api/air-quality: proveedor, esquema, servicio (caché ≥ 1 h) y rutas
 │       │   └── weather/
 │       │       ├── weather.routes.ts    GET /api/weather
-│       │       ├── weather.service.ts   caché, deduplicación, localidad, datos desactualizados
-│       │       ├── weather.provider.ts  cliente Open-Meteo + normalización (único punto que conoce Open-Meteo)
+│       │       ├── weather.service.ts   caché y datos desactualizados sobre cached-resource
+│       │       ├── weather.provider.ts  previsión y geocoding de Open-Meteo + normalización
 │       │       ├── weather.schema.ts    esquemas Zod de las respuestas de Open-Meteo
 │       │       ├── weather.codes.ts     interpretación de códigos WMO (descripción + icono semántico)
 │       │       └── weather.types.ts     modelo interno estable
@@ -113,27 +145,34 @@ apps/
 │       ├── app.ts               composición de la aplicación (testeable con inject)
 │       └── server.ts            arranque, dotenv y cierre ordenado
 └── frontend/                    React 18 + Vite + CSS Modules
-    ├── assets/                  imagen del hero y fuentes JetBrains Mono (subconjunto latino, woff2)
+    ├── assets/                  fotos del hero (día y noche) y fuentes JetBrains Mono (subconjunto latino, woff2)
     └── src/
-        ├── components/          HeroPanel, SidePanel, ForecastPanel (layout)
+        ├── components/          HeroPanel (dos capas de foto), Panel, SidePanel, ForecastPanel (layout), Metric (ficha de medida)
         ├── features/clock/      Clock, useCurrentTime, formateo Intl
-        ├── features/forecast/   WeeklyForecast, formateo del día de la semana
-        ├── features/weather/    WeatherPanel, WeatherDetails, WeatherIcon, useWeather, formateo
-        ├── services/            weatherApi (fetch a la API local + validación en runtime)
-        ├── types/               contrato de la API
+        ├── features/dashboard/  useDashboardData: único dueño de la consulta de datos
+        ├── features/rotation/   useRotation, RotatingView (fundido entre vistas), configuración y parámetros de depuración
+        ├── features/theme/     useCommittedTheme (tema día/noche sincronizado con la rotación)
+        ├── features/forecast/   WeeklyForecast, HourlyForecast (gráfica de 24 h), formateo
+        ├── features/weather/    WeatherPanel, WeatherDetails, WeatherIcon, formateo
+        ├── features/wind-air/   WindAirPanel, WindRose (rosa de los vientos), formateo de viento y aire
+        ├── services/            weatherApi, airQualityApi, configApi (fetch a la API local + validación en runtime)
+        ├── types/               contratos de la API y tema
         └── styles/              estilos globales y tokens de diseño
 ```
 
 ### Decisiones principales
 
-- **Aislamiento del proveedor**: solo `weather.provider.ts` conoce las URLs, parámetros y formato de Open-Meteo. El resto trabaja con `WeatherSnapshot`. El backend envía un icono semántico (`clear`, `rain`, …) además del código WMO, de modo que el frontend no interpreta códigos del proveedor.
-- **Caché en memoria** con validez de `WEATHER_REFRESH_INTERVAL`. Las peticiones concurrentes comparten una única llamada al proveedor. Si Open-Meteo falla se devuelve la última información válida con `stale: true`, y no se vuelve a intentar hasta pasado un minuto, para no retrasar cada respuesta con el timeout. Si nunca hubo datos se responde `503` con `{ "error": "WEATHER_UNAVAILABLE" }`.
-- **Arranque no bloqueante**: la primera consulta se lanza en segundo plano al arrancar; la localidad se resuelve de forma perezosa y se reintenta si el geocoding falla.
+- **Aislamiento del proveedor**: solo `weather.provider.ts` y `air-quality.provider.ts` conocen las URLs, parámetros y formato de Open-Meteo (sobre el cliente común `open-meteo.client.ts`). El resto trabaja con modelos internos como `WeatherSnapshot`. El backend envía un icono semántico (`clear`, `rain`, …) además del código WMO, de modo que el frontend no interpreta códigos del proveedor.
+- **Caché en memoria** (`shared/cached-resource.ts`) con validez de `WEATHER_REFRESH_INTERVAL` (la calidad del aire, al menos 1 hora). Las peticiones concurrentes comparten una única llamada al proveedor. Si Open-Meteo falla se devuelve la última información válida con `stale: true`, y no se vuelve a intentar hasta pasado un minuto, para no retrasar cada respuesta con el timeout. Si nunca hubo datos se responde `503` (`WEATHER_UNAVAILABLE` o `AIR_QUALITY_UNAVAILABLE`). Un fallo de la calidad del aire nunca afecta al tiempo.
+- **Arranque no bloqueante**: la primera consulta de cada módulo se lanza en segundo plano al arrancar; la localidad se resuelve una sola vez, de forma perezosa y compartida, y se reintenta si el geocoding falla.
 - **Reloj aislado**: el estado de la hora vive en `Clock`, de modo que su tic de cada segundo no vuelve a renderizar el resto del dashboard. Cada tic se programa con `setTimeout` hasta el siguiente segundo exacto según `Date.now()`, así que los retrasos no se acumulan y solo existe un temporizador. La fecha es un componente memorizado que solo se actualiza cuando cambia el día.
-- **Frontend resiliente**: `useWeather` consulta la API local cada 5 minutos (cada 30 s tras un error) y conserva los últimos datos si una consulta falla. Se llama una sola vez en `App` y su estado se pasa al panel meteorológico y a la predicción semanal, así que ambos comparten una única consulta. Un error meteorológico nunca afecta al reloj.
-- **Layout y resoluciones**: `App.module.css` usa una cuadrícula de dos filas (hero y panel meteorológico arriba, predicción a ancho completo debajo) y apila todo en vertical. La imagen del hero usa `background-size: cover`: conserva su proporción (3:2) y solo se recorta, sin deformarse. Tras cualquier cambio de layout ejecuta `npm run screenshots` (ver [Regresión visual](#regresión-visual)).
+- **Ciclo único de datos**: `useDashboardData` es el único dueño de la consulta. Pide a la vez el tiempo y la calidad del aire (y cada estado se publica en cuanto llega, con errores independientes), y repite el ciclo cuando el servidor indica que su caché caduca: `/api/weather` devuelve `nextRefreshInMs`, calculado en el servidor, y el frontend espera ese tiempo más 1 s. Así la cadencia sigue a `WEATHER_REFRESH_INTERVAL` sin desfases de reloj. Tras un fallo reintenta a los 30 s conservando los últimos datos. Los datos viven en `App`, fuera de las vistas rotatorias: **rotar nunca provoca una consulta**. No se usa `sessionStorage`: el backend ya guarda los datos en memoria y responde en milisegundos.
+- **Rotación de vistas**: un único temporizador (`useRotation`) avanza la página cada `UI_ROTATION_INTERVAL` (leído en `GET /api/config`, sin recompilar). Cada espacio muestra su vista de esa página; `RotatingView` funde la actual (0,35 s) y después la nueva (0,35 s), sin otras animaciones y sin fundido con `prefers-reduced-motion`.
+- **Tema día/noche**: la foto depende de `is_day`. El primer dato válido y la rotación desactivada se aplican al instante; un cambio posterior espera al siguiente ciclo de rotación, para que la foto y las vistas cambien a la vez. Solo cambia la foto: los colores se mantienen.
+- **Frontend resiliente**: un error meteorológico nunca afecta al reloj.
+- **Layout y resoluciones**: `App.module.css` usa una cuadrícula de dos filas (hero y card lateral arriba, franja inferior a ancho completo debajo) y apila todo en vertical. Las fotos usan `background-size: cover`: conservan su proporción y solo se recortan, sin deformarse. Todas las vistas de la franja inferior comparten la altura `--forecast-content-height` para que rotar no mueva el layout. Tras cualquier cambio de layout ejecuta `npm run screenshots` (ver [Regresión visual](#regresión-visual)).
 - **Sin CORS**: en desarrollo se usa el proxy de Vite; en producción todo se sirve desde el mismo origen.
-- **Ligero**: bundle JS de ~53 KB gzip; fuentes reducidas de 2,5 MB a 13 KB y 34 KB; sin animaciones.
+- **Ligero**: bundle JS de ~57 KB gzip; fuentes reducidas de 2,5 MB a 13 KB y 34 KB; fotos en WebP (187 KB y 59 KB); gráficas en SVG propio, sin librerías de gráficos; sin animaciones continuas.
 
 ## API
 
@@ -142,6 +181,16 @@ apps/
 ```json
 { "status": "ok" }
 ```
+
+### `GET /api/config`
+
+Configuración de la interfaz, leída en tiempo de ejecución. Sin caché.
+
+```json
+{ "rotationIntervalMs": 300000 }
+```
+
+`0` indica que la rotación está desactivada.
 
 ### `GET /api/weather`
 
@@ -153,6 +202,10 @@ apps/
     "apparentTemperature": 6.7,
     "relativeHumidity": 70,
     "windSpeed": 2.2,
+    "windDirection": 90,
+    "windGusts": 6.1,
+    "pressure": 1024.9,
+    "cloudCover": 96,
     "precipitationProbability": 0,
     "weatherCode": 1,
     "description": "Mayormente despejado",
@@ -171,21 +224,42 @@ apps/
       "precipitationProbabilityMax": 0
     }
   ],
+  "hourly": [
+    { "time": "2026-11-23T19:00", "temperature": 7.5, "precipitationProbability": 0 }
+  ],
   "updatedAt": "2026-11-23T11:06:09.136Z",
+  "stale": false,
+  "nextRefreshInMs": 899822
+}
+```
+
+`forecast` contiene 7 elementos (hoy + 6 días) y `hourly` 24 (desde la hora en curso); aquí se muestra solo el primero de cada uno. `date` es la fecha local de la localidad (`YYYY-MM-DD`), `time` la hora local (`YYYY-MM-DDTHH:mm`) y el primer elemento de `forecast` es siempre hoy. `daily` equivale a los extremos de `forecast[0]` y se mantiene por compatibilidad. `nextRefreshInMs` es el tiempo hasta el siguiente refresco (o reintento, si `stale` es `true`).
+
+`windDirection` son los grados de los que viene el viento (0 = norte). `windDirection`, `windGusts`, `pressure`, `cloudCover`, `precipitationProbability`, `temperatureMax`, `temperatureMin`, `precipitationProbabilityMax` y las temperaturas y probabilidades de `hourly` pueden ser `null` si Open-Meteo no los proporciona.
+
+### `GET /api/air-quality`
+
+```json
+{
+  "europeanAqi": 19,
+  "pm25": 3.7,
+  "dust": 0,
+  "uvIndex": 0,
+  "pollen": { "olive": 0, "grass": 0 },
+  "updatedAt": "2026-11-23T18:23:36.054Z",
   "stale": false
 }
 ```
 
-`forecast` contiene 7 elementos (hoy + 6 días); aquí se muestra solo el primero. `date` es la fecha local de la localidad (`YYYY-MM-DD`) y el primer elemento es siempre hoy. `daily` equivale a los extremos de `forecast[0]` y se mantiene por compatibilidad.
-
-`precipitationProbability`, `temperatureMax`, `temperatureMin` y `precipitationProbabilityMax` pueden ser `null` si Open-Meteo no los proporciona.
+Todas las medidas pueden ser `null`. El polen llega a `0` fuera de temporada y a `null` donde el proveedor no tiene cobertura (fuera de Europa). Si no hay datos responde `503` con `{ "error": "AIR_QUALITY_UNAVAILABLE" }`.
 
 ## Integración con Open-Meteo
 
 - Geocoding: `https://geocoding-api.open-meteo.com/v1/search?name=…&countryCode=ES&language=es&count=1`.
-- Previsión: `https://api.open-meteo.com/v1/forecast` con `current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day,precipitation_probability` y `daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max`, `forecast_days=7`, viento en km/h.
-- Todas las respuestas se validan con Zod; un formato inesperado se trata como un fallo del proveedor.
-- Uso no comercial gratuito y sin API key. Con la caché de 15 minutos el dashboard realiza ~96 peticiones diarias (cada una cuenta como ~1,1 llamadas por tener más de 10 variables), muy por debajo de los límites.
+- Previsión: `https://api.open-meteo.com/v1/forecast` con `current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,cloud_cover,weather_code,is_day,precipitation_probability`, `daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max` y `hourly=temperature_2m,precipitation_probability`, con `forecast_days=7`, `forecast_hours=24` y viento en km/h.
+- Calidad del aire: `https://air-quality-api.open-meteo.com/v1/air-quality` con `current=european_aqi,pm2_5,dust,uv_index,olive_pollen,grass_pollen`.
+- Todas las respuestas se validan con Zod; un formato inesperado se trata como un fallo del proveedor. Las medidas auxiliares (viento, presión, nubosidad y toda la calidad del aire) admiten `null` sin invalidar la respuesta.
+- Uso no comercial gratuito y sin API key. Con la caché de 15 minutos el dashboard realiza ~96 peticiones diarias de previsión (cada una cuenta como ~1,7 llamadas por tener 17 variables) y ~24 de calidad del aire (caché de 1 hora): unas 190 llamadas al día, muy por debajo del límite de 10.000.
 
 ## Modo kiosk (Fedora KDE Plasma)
 
@@ -245,7 +319,8 @@ El script instala dependencias si falta `node_modules`, espera a que `/api/healt
 
 ## Fuentes y recursos
 
-- `apps/frontend/assets/navaluenga.webp`: imagen del hero (oscurecida con un degradado CSS).
+- `apps/frontend/assets/navaluenga.webp`: foto de día del hero (1280×853), oscurecida con un degradado CSS.
+- `apps/frontend/assets/navaluenga_noche.webp`: foto de noche del hero (680×385), recortada por abajo para quitar una marca de agua del original. Tiene poca resolución y se amplía en pantallas grandes; sustitúyela por una versión de mayor resolución si dispones de ella.
 - `apps/frontend/assets/fonts/*.woff2`: subconjunto latino (Basic Latin + Latin-1) de JetBrains Mono Regular y Bold, generado con `pyftsubset` de fontTools. Para regenerarlo hacen falta los TTF originales, que ya no se incluyen en el repositorio.
 
 Las limitaciones conocidas están en [`docs/limitaciones.md`](docs/limitaciones.md).
