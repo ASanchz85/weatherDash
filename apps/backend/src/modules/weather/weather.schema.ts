@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 /** Esquemas de validación de las respuestas externas de Open-Meteo. */
 
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
 export const geocodingResponseSchema = z.object({
   results: z
     .array(
@@ -28,10 +30,18 @@ export const forecastResponseSchema = z.object({
     is_day: z.union([z.literal(0), z.literal(1)]),
     precipitation_probability: z.number().min(0).max(100).nullable().optional(),
   }),
-  daily: z.object({
-    temperature_2m_max: z.array(z.number().nullable()).min(1),
-    temperature_2m_min: z.array(z.number().nullable()).min(1),
-  }),
+  daily: z
+    .object({
+      time: z.array(z.string().regex(ISO_DATE_PATTERN)).min(1),
+      weather_code: z.array(z.number().int().nonnegative()),
+      temperature_2m_max: z.array(z.number().nullable()),
+      temperature_2m_min: z.array(z.number().nullable()),
+      precipitation_probability_max: z.array(z.number().min(0).max(100).nullable()),
+    })
+    .refine(
+      ({ time, ...series }) => Object.values(series).every((values) => values.length === time.length),
+      { message: 'Las series diarias deben tener la misma longitud que time' },
+    ),
 });
 
 export type ForecastResponse = z.infer<typeof forecastResponseSchema>;

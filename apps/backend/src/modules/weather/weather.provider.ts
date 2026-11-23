@@ -6,13 +6,13 @@ import {
   geocodingResponseSchema,
   type ForecastResponse,
 } from './weather.schema.js';
-import type { ResolvedLocation, WeatherSnapshot } from './weather.types.js';
+import type { DailyForecast, ResolvedLocation, WeatherSnapshot } from './weather.types.js';
 
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 const GEOCODING_LANGUAGE = 'es';
 const GEOCODING_MAX_RESULTS = 1;
-const FORECAST_DAYS = 1;
+const FORECAST_DAYS = 7;
 const AUTO_TIMEZONE = 'auto';
 
 const CURRENT_FIELDS = [
@@ -25,7 +25,12 @@ const CURRENT_FIELDS = [
   'precipitation_probability',
 ] as const;
 
-const DAILY_FIELDS = ['temperature_2m_max', 'temperature_2m_min'] as const;
+const DAILY_FIELDS = [
+  'weather_code',
+  'temperature_2m_max',
+  'temperature_2m_min',
+  'precipitation_probability_max',
+] as const;
 
 export class WeatherProviderError extends Error {
   override readonly name = 'WeatherProviderError';
@@ -151,5 +156,24 @@ export function normalizeForecast(data: ForecastResponse, location: ResolvedLoca
       temperatureMax: daily.temperature_2m_max[0] ?? null,
       temperatureMin: daily.temperature_2m_min[0] ?? null,
     },
+    forecast: normalizeDailyForecast(daily),
   };
+}
+
+function normalizeDailyForecast(daily: ForecastResponse['daily']): DailyForecast[] {
+  return daily.time.flatMap((date, index) => {
+    const weatherCode = daily.weather_code[index];
+    if (weatherCode === undefined) return [];
+    const condition = interpretWeatherCode(weatherCode);
+
+    return {
+      date,
+      weatherCode,
+      description: condition.description,
+      icon: condition.icon,
+      temperatureMax: daily.temperature_2m_max[index] ?? null,
+      temperatureMin: daily.temperature_2m_min[index] ?? null,
+      precipitationProbabilityMax: daily.precipitation_probability_max[index] ?? null,
+    };
+  });
 }

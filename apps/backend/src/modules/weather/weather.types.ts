@@ -43,6 +43,17 @@ export interface DailyWeather {
   temperatureMin: number | null;
 }
 
+export interface DailyForecast {
+  /** Fecha local de la localidad (YYYY-MM-DD); el primer elemento es hoy. */
+  date: string;
+  weatherCode: number;
+  description: string;
+  icon: WeatherIcon;
+  temperatureMax: number | null;
+  temperatureMin: number | null;
+  precipitationProbabilityMax: number | null;
+}
+
 /** Modelo interno estable, desacoplado de la respuesta de Open-Meteo. */
 export interface WeatherSnapshot {
   location: {
@@ -51,6 +62,7 @@ export interface WeatherSnapshot {
   };
   current: CurrentWeather;
   daily: DailyWeather;
+  forecast: DailyForecast[];
 }
 
 /** Respuesta pública de GET /api/weather. */
