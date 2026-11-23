@@ -3,16 +3,19 @@ import { config as loadDotenv } from 'dotenv';
 import { buildApp } from './app.js';
 import { loadConfig } from './config/env.js';
 import { ROOT_ENV_PATH } from './config/paths.js';
+import { createOpenMeteoAirQualityProvider } from './modules/air-quality/air-quality.provider.js';
 import { createOpenMeteoProvider } from './modules/weather/weather.provider.js';
 
 loadDotenv({ path: ROOT_ENV_PATH, quiet: true });
 
 const config = loadConfig();
+const { requestTimeoutMs } = config.weather;
 
 const app = await buildApp({
   weatherConfig: config.weather,
   uiConfig: config.ui,
-  weatherProvider: createOpenMeteoProvider({ requestTimeoutMs: config.weather.requestTimeoutMs }),
+  weatherProvider: createOpenMeteoProvider({ requestTimeoutMs }),
+  airQualityProvider: createOpenMeteoAirQualityProvider({ requestTimeoutMs }),
   staticDir: config.staticDir,
   prefetchWeather: true,
   logger: { level: config.nodeEnv === 'production' ? 'info' : 'debug' },

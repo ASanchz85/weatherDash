@@ -1,8 +1,11 @@
 import type { WeatherConfig } from '../config/env.js';
+import type { AirQualityResponse } from '../modules/air-quality/air-quality.schema.js';
+import type { AirQualitySnapshot } from '../modules/air-quality/air-quality.types.js';
+import type { ResolvedLocation } from '../modules/location/location.types.js';
 import type { ForecastResponse } from '../modules/weather/weather.schema.js';
 import type {
   DailyForecast,
-  ResolvedLocation,
+  HourlyForecast,
   WeatherSnapshot,
 } from '../modules/weather/weather.types.js';
 
@@ -31,6 +34,10 @@ export const forecastResponse: ForecastResponse = {
     apparent_temperature: 6.1,
     relative_humidity_2m: 72,
     wind_speed_10m: 2.3,
+    wind_direction_10m: 90,
+    wind_gusts_10m: 6.1,
+    pressure_msl: 1024.9,
+    cloud_cover: 96,
     weather_code: 2,
     is_day: 1,
     precipitation_probability: 10,
@@ -42,7 +49,33 @@ export const forecastResponse: ForecastResponse = {
     temperature_2m_min: [0.8, 2.6, 4.6],
     precipitation_probability_max: [0, 65, 25],
   },
+  hourly: {
+    time: ['2026-11-23T18:00', '2026-11-23T19:00', '2026-11-23T20:00'],
+    temperature_2m: [9.2, 7.6, 6.3],
+    precipitation_probability: [0, 0, 20],
+  },
 };
+
+export const airQualityResponse: AirQualityResponse = {
+  current: {
+    european_aqi: 22,
+    pm2_5: 3.3,
+    dust: 0,
+    uv_index: 0,
+    olive_pollen: 0,
+    grass_pollen: 0,
+  },
+};
+
+export function buildAirQuality(): AirQualitySnapshot {
+  return {
+    europeanAqi: 22,
+    pm25: 3.3,
+    dust: 0,
+    uvIndex: 0,
+    pollen: { olive: 0, grass: 0 },
+  };
+}
 
 export const geocodingResponse = {
   results: [
@@ -64,6 +97,10 @@ export function buildSnapshot(temperature = 8.4): WeatherSnapshot {
       apparentTemperature: 6.1,
       relativeHumidity: 72,
       windSpeed: 2.3,
+      windDirection: 90,
+      windGusts: 6.1,
+      pressure: 1024.9,
+      cloudCover: 96,
       precipitationProbability: 10,
       weatherCode: 2,
       description: 'Parcialmente nuboso',
@@ -72,7 +109,16 @@ export function buildSnapshot(temperature = 8.4): WeatherSnapshot {
     },
     daily: { temperatureMax: 11.9, temperatureMin: 0.8 },
     forecast: buildForecast(),
+    hourly: buildHourly(),
   };
+}
+
+export function buildHourly(): HourlyForecast[] {
+  return [
+    { time: '2026-11-23T18:00', temperature: 9.2, precipitationProbability: 0 },
+    { time: '2026-11-23T19:00', temperature: 7.6, precipitationProbability: 0 },
+    { time: '2026-11-23T20:00', temperature: 6.3, precipitationProbability: 20 },
+  ];
 }
 
 export function buildForecast(): DailyForecast[] {
