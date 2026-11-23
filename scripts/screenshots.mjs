@@ -196,19 +196,25 @@ async function measureLayout({ heroSelector, dashboardSelector }) {
   const dashboard = document.querySelector(dashboardSelector);
   if (!hero || !dashboard) return { error: 'No se encontró el hero o el contenedor principal' };
 
-  const heroStyle = getComputedStyle(hero);
-  const layers = splitTopLevel(heroStyle.backgroundImage);
-  const sizes = splitTopLevel(heroStyle.backgroundSize);
-  const imageIndex = layers.findIndex((layer) => layer.startsWith('url('));
-  const imageUrl = imageIndex >= 0 ? layers[imageIndex].slice(4, -1).replace(/^["']|["']$/g, '') : null;
-  const backgroundSize = imageIndex >= 0 ? sizes[imageIndex % sizes.length] : null;
-
-  let image = null;
-  if (imageUrl) {
-    const element = new Image();
-    element.src = imageUrl;
-    await element.decode();
-    image = { width: element.naturalWidth, height: element.naturalHeight };
+  // Cada capa [data-hero-image] es una foto a pantalla completa del hero (día y noche).
+  const layers = [];
+  for (const element of hero.querySelectorAll('[data-hero-image]')) {
+    const style = getComputedStyle(element);
+    const urls = splitTopLevel(style.backgroundImage).filter((layer) => layer.startsWith('url('));
+    const imageUrl = urls[0] ? urls[0].slice(4, -1).replace(/^["']|["']$/g, '') : null;
+    let image = null;
+    if (imageUrl) {
+      const preview = new Image();
+      preview.src = imageUrl;
+      await preview.decode();
+      image = { width: preview.naturalWidth, height: preview.naturalHeight };
+    }
+    layers.push({
+      name: element.getAttribute('data-hero-image'),
+      backgroundSize: style.backgroundSize,
+      rect: box(element.getBoundingClientRect()),
+      image,
+    });
   }
 
   const heroRect = hero.getBoundingClientRect();
@@ -225,7 +231,7 @@ async function measureLayout({ heroSelector, dashboardSelector }) {
     innerHeight: window.innerHeight,
     scrollHeight: root.scrollHeight,
     scrollWidth: root.scrollWidth,
-    hero: { rect: box(heroRect), backgroundSize, image },
+    hero: { rect: box(heroRect), theme: hero.getAttribute('data-theme'), layers },
     sections,
   };
 }
@@ -235,9 +241,9 @@ function intersects(a, b) {
 }
 
 /** Con cover, la imagen conserva su proporción y se recorta en el eje que sobra. */
-function describeCrop(hero) {
-  const boxRatio = hero.rect.width / hero.rect.height;
-  const imageRatio = hero.image.width / hero.image.height;
+function describeCrop(heroRect, image) {
+  const boxRatio = heroRect.width / heroRect.height;
+  const imageRatio = image.width / image.height;
   const horizontal = boxRatio < imageRatio;
   const crop = horizontal ? 1 - boxRatio / imageRatio : 1 - imageRatio / boxRatio;
   return { boxRatio, imageRatio, crop, axis: horizontal ? 'horizontal' : 'vertical' };
@@ -267,22 +273,25 @@ function evaluate(metrics, strictCrop) {
     }
   }
 
-  if (metrics.hero.backgroundSize !== 'cover') {
-    problems.push(`background-size del hero es «${metrics.hero.backgroundSize}», debe ser cover`);
-  }
-
-  let crop = null;
-  if (metrics.hero.image) {
-    crop = describeCrop(metrics.hero);
+  const crops = [];
+  if (metrics.hero.layers.length === 0) problems.push('el hero no tiene imagen de fondo');
+  for (const layer of metrics.hero.layers) {
+    if (layer.backgroundSize !== 'cover') {
+      problems.push(`background-size de la imagen «${layer.name}» es «${layer.backgroundSize}», debe ser cover`);
+    }
+    if (!layer.image) {
+      problems.push(`la capa «${layer.name}» del hero no tiene imagen`);
+      continue;
+    }
+    const crop = { name: layer.name, ...describeCrop(metrics.hero.rect, layer.image) };
+    crops.push(crop);
     if (crop.crop > MAX_CROP_RATIO) {
-      const message = `recorte de la imagen ${(crop.crop * 100).toFixed(1)}% (máx. ${MAX_CROP_RATIO * 100}%)`;
+      const message = `recorte de la imagen «${layer.name}» ${(crop.crop * 100).toFixed(1)}% (máx. ${MAX_CROP_RATIO * 100}%)`;
       (strictCrop ? problems : warnings).push(message);
     }
-  } else {
-    problems.push('el hero no tiene imagen de fondo');
   }
 
-  return { problems, warnings, summary: { crop } };
+  return { problems, warnings, summary: { crops } };
 }
 
 async function captureViewport(page, viewport) {
@@ -301,6 +310,12 @@ async function captureViewport(page, viewport) {
     READY_TIMEOUT_MS,
     'a que termine la carga de datos',
   ).catch(() => undefined);
+
+  // Los fundidos (cambio de tema) deben haber terminado antes de medir y capturar.
+  await page.send('Runtime.evaluate', {
+    expression: 'Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => undefined)))',
+    awaitPromise: true,
+  });
 
   const expression = `(${measureLayout.toString()})(${JSON.stringify({
     heroSelector: HERO_SELECTOR,
@@ -329,12 +344,14 @@ async function captureViewport(page, viewport) {
 function formatLine({ viewport, metrics, problems, warnings, summary }) {
   const name = `${viewport.width}x${viewport.height}`.padEnd(10);
   const status = problems.length > 0 ? 'ERR' : warnings.length > 0 ? 'AVI' : 'OK ';
-  if (!summary?.crop) return `${status} ${name} ${problems.join('; ')}`;
-  const { boxRatio, crop, axis } = summary.crop;
+  if (!summary?.crops?.length) return `${status} ${name} ${problems.join('; ')}`;
   const { width, height } = metrics.hero.rect;
+  const crops = summary.crops
+    .map(({ name: layer, crop, axis }) => `${layer} ${(crop * 100).toFixed(1)}% ${axis}`)
+    .join(' · ');
   return (
-    `${status} ${name} hero ${Math.round(width)}x${Math.round(height)} ratio ${boxRatio.toFixed(2)}` +
-    ` · recorte ${(crop * 100).toFixed(1)}% ${axis}`
+    `${status} ${name} hero ${Math.round(width)}x${Math.round(height)} ratio ${(width / height).toFixed(2)}` +
+    ` · tema ${metrics.hero.theme} · recorte ${crops}`
   );
 }
 
@@ -360,9 +377,11 @@ async function main() {
     await rm(profileDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }).catch(() => undefined);
   }
 
-  const image = results.find((entry) => entry.metrics.hero?.image)?.metrics.hero.image;
+  const layers = results.find((entry) => entry.metrics.hero?.layers)?.metrics.hero.layers ?? [];
   console.log(`URL: ${pageUrl}`);
-  if (image) console.log(`Imagen del hero: ${image.width}x${image.height} (ratio ${(image.width / image.height).toFixed(3)})`);
+  for (const { name, image } of layers) {
+    if (image) console.log(`Imagen del hero (${name}): ${image.width}x${image.height} (ratio ${(image.width / image.height).toFixed(3)})`);
+  }
   for (const entry of results) {
     console.log(formatLine(entry));
     if (!entry.summary) continue;

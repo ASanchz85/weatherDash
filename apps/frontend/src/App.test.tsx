@@ -50,4 +50,38 @@ describe('App', () => {
     expect(within(forecast).getAllByRole('listitem')).toHaveLength(7);
     expect(fetchWeather).toHaveBeenCalledTimes(1);
   });
+
+  describe('tema del hero', () => {
+    afterEach(() => {
+      window.history.replaceState(null, '', '/');
+    });
+
+    async function renderApp() {
+      render(<App />);
+      await act(async () => {
+        await Promise.resolve();
+      });
+      return screen.getByRole('region', { name: 'Fecha y hora' });
+    }
+
+    it('usa la foto de día mientras no hay datos', async () => {
+      vi.mocked(fetchWeather).mockRejectedValue(new WeatherApiError('Sin conexión'));
+
+      expect(await renderApp()).toHaveAttribute('data-theme', 'day');
+    });
+
+    it('usa la foto de noche cuando la meteorología indica que es de noche', async () => {
+      const data = buildWeatherData();
+      vi.mocked(fetchWeather).mockResolvedValue({ ...data, current: { ...data.current, isDay: false } });
+
+      expect(await renderApp()).toHaveAttribute('data-theme', 'night');
+    });
+
+    it('permite forzar el tema con ?theme=', async () => {
+      window.history.replaceState(null, '', '/?theme=night');
+      vi.mocked(fetchWeather).mockResolvedValue(buildWeatherData());
+
+      expect(await renderApp()).toHaveAttribute('data-theme', 'night');
+    });
+  });
 });

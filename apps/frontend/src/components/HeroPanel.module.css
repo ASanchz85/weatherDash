@@ -7,17 +7,54 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   container-type: inline-size;
-  background:
-    linear-gradient(
-      180deg,
-      rgb(14 18 27 / 0.75) 0%,
-      rgb(14 18 27 / 0.4) 45%,
-      rgb(14 18 27 / 0.15) 100%
-    ),
-    url('../../assets/navaluenga.webp') center / cover no-repeat,
-    var(--color-surface);
+  background: var(--color-surface);
+}
+
+/* Degradado de contraste sobre las fotos y bajo el contenido */
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgb(14 18 27 / 0.75) 0%,
+    rgb(14 18 27 / 0.4) 45%,
+    rgb(14 18 27 / 0.15) 100%
+  );
+}
+
+.image {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* cover conserva la proporción de la foto y solo recorta */
+  background-size: cover;
+}
+
+.day {
+  background-image: url('../../assets/navaluenga.webp');
+}
+
+/* La foto nocturna se funde sobre la diurna, que siempre queda debajo */
+.night {
+  background-image: url('../../assets/navaluenga_noche.webp');
+  opacity: 0;
+  transition: opacity calc(var(--rotation-fade-ms) * 2) ease;
+}
+
+.hero[data-theme='night'] .night {
+  opacity: 1;
 }
 
 .content {
+  position: relative;
+  z-index: 1;
   width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .night {
+    transition: none;
+  }
 }

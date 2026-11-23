@@ -1,6 +1,7 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import { ROTATION_FADE_MS } from '../../config';
+import { ROTATION_FADE_STYLE } from './fadeStyle';
 import styles from './RotatingView.module.css';
 
 export interface RotatingViewItem {
@@ -12,8 +13,6 @@ interface RotatingViewProps {
   views: readonly RotatingViewItem[];
   page: number;
 }
-
-type FadeStyle = CSSProperties & { '--rotation-fade-ms': string };
 
 function fadeDurationMs(): number {
   const prefersReducedMotion =
@@ -50,10 +49,9 @@ export function RotatingView({ views, page }: RotatingViewProps) {
 
   // El contenido se busca por id para que los datos nuevos de la vista visible se reflejen sin esperar al cambio.
   const shown = views.find((view) => view.id === shownId) ?? target;
-  const style: FadeStyle = { '--rotation-fade-ms': `${ROTATION_FADE_MS}ms` };
 
   return (
-    <div className={styles.view} data-fading={fadingOut} style={style}>
+    <div className={styles.view} data-fading={fadingOut} style={ROTATION_FADE_STYLE}>
       {shown?.content}
     </div>
   );

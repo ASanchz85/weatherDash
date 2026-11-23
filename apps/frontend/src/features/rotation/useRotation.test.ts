@@ -16,34 +16,39 @@ describe('useRotation', () => {
 
   it('avanza de página cada intervalo y vuelve a la primera', () => {
     const { result } = renderHook(() => useRotation(2, INTERVAL_MS));
-    expect(result.current).toBe(0);
+    expect(result.current).toEqual({ page: 0, tick: 0, isRotating: true });
 
     act(() => {
       vi.advanceTimersByTime(INTERVAL_MS);
     });
-    expect(result.current).toBe(1);
+    expect(result.current).toEqual({ page: 1, tick: 1, isRotating: true });
 
     act(() => {
       vi.advanceTimersByTime(INTERVAL_MS);
     });
-    expect(result.current).toBe(0);
+    expect(result.current).toEqual({ page: 0, tick: 2, isRotating: true });
   });
 
-  it('no rota sin intervalo, con intervalo 0 o con una sola página', () => {
-    for (const [pageCount, intervalMs] of [
-      [2, null],
-      [2, 0],
-      [1, INTERVAL_MS],
-    ] as const) {
-      const { result, unmount } = renderHook(() => useRotation(pageCount, intervalMs));
+  it('no rota sin intervalo o con intervalo 0', () => {
+    for (const intervalMs of [null, 0]) {
+      const { result, unmount } = renderHook(() => useRotation(2, intervalMs));
 
       act(() => {
         vi.advanceTimersByTime(INTERVAL_MS * 3);
       });
-      expect(result.current).toBe(0);
+      expect(result.current).toEqual({ page: 0, tick: 0, isRotating: false });
       expect(vi.getTimerCount()).toBe(0);
       unmount();
     }
+  });
+
+  it('con una sola página mantiene la página 0 pero sigue emitiendo ciclos', () => {
+    const { result } = renderHook(() => useRotation(1, INTERVAL_MS));
+
+    act(() => {
+      vi.advanceTimersByTime(INTERVAL_MS * 2);
+    });
+    expect(result.current).toEqual({ page: 0, tick: 2, isRotating: true });
   });
 
   it('muestra la página fijada y no rota', () => {
@@ -52,7 +57,7 @@ describe('useRotation', () => {
     act(() => {
       vi.advanceTimersByTime(INTERVAL_MS * 3);
     });
-    expect(result.current).toBe(1);
+    expect(result.current).toEqual({ page: 1, tick: 0, isRotating: false });
     expect(vi.getTimerCount()).toBe(0);
   });
 

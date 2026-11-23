@@ -10,14 +10,16 @@ import { parseDebugOverrides } from './features/rotation/debugOverrides';
 import { RotatingView, type RotatingViewItem } from './features/rotation/RotatingView';
 import { useRotation } from './features/rotation/useRotation';
 import { useRotationInterval } from './features/rotation/useRotationInterval';
+import { useCommittedTheme } from './features/theme/useCommittedTheme';
 import { useWeather } from './features/weather/useWeather';
 import { WeatherPanel } from './features/weather/WeatherPanel';
+import { themeFromIsDay } from './types/theme';
 
 export function App() {
   // Los datos se piden aquí, fuera de las vistas rotatorias, para que rotar nunca provoque una consulta.
   const weather = useWeather();
   const rotationIntervalMs = useRotationInterval();
-  const [{ page: pinnedPage }] = useState(() => parseDebugOverrides(window.location.search));
+  const [overrides] = useState(() => parseDebugOverrides(window.location.search));
 
   const sideViews: RotatingViewItem[] = [
     { id: 'weather', content: <WeatherPanel state={weather} /> },
@@ -26,11 +28,18 @@ export function App() {
     { id: 'weekly', content: <WeeklyForecast state={weather} /> },
   ];
 
-  const page = useRotation(Math.max(sideViews.length, bottomViews.length), rotationIntervalMs, pinnedPage);
+  const { page, tick, isRotating } = useRotation(
+    Math.max(sideViews.length, bottomViews.length),
+    rotationIntervalMs,
+    overrides.page,
+  );
+  const desiredTheme = weather.status === 'ready' ? themeFromIsDay(weather.data.current.isDay) : null;
+  const committedTheme = useCommittedTheme(desiredTheme, tick, isRotating);
+  const theme = overrides.theme ?? committedTheme;
 
   return (
     <main className={styles.dashboard}>
-      <HeroPanel label="Fecha y hora">
+      <HeroPanel label="Fecha y hora" theme={theme}>
         <Clock />
       </HeroPanel>
       <SidePanel label="Meteorología">
