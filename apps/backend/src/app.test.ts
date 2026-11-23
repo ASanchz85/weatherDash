@@ -1,16 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { buildApp } from './app.js';
+import type { AirQualityProvider } from './modules/air-quality/air-quality.provider.js';
 import type { WeatherProvider } from './modules/weather/weather.provider.js';
-import { buildSnapshot, weatherConfig } from './test/fixtures.js';
+import { buildAirQuality, buildSnapshot, weatherConfig } from './test/fixtures.js';
 
 const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 
-async function createTestApp(fetchForecast: WeatherProvider['fetchForecast']) {
+async function createTestApp(
+  fetchForecast: WeatherProvider['fetchForecast'],
+  fetchAirQuality: AirQualityProvider['fetchAirQuality'] = vi.fn().mockResolvedValue(buildAirQuality()),
+) {
   const app = await buildApp({
     weatherConfig: { ...weatherConfig, coordinates: { latitude: 40.41, longitude: -4.71 } },
     uiConfig: { rotationIntervalMs: 300000 },
     weatherProvider: { geocode: vi.fn(), fetchForecast },
+    airQualityProvider: { fetchAirQuality },
     staticDir: null,
     now: () => Date.UTC(2026, 10, 23, 10),
   });
@@ -50,6 +55,7 @@ describe('API REST', () => {
       ...buildSnapshot(),
       updatedAt: '2026-11-23T10:00:00.000Z',
       stale: false,
+      nextRefreshInMs: weatherConfig.refreshIntervalMs,
     });
   });
 
@@ -59,5 +65,32 @@ describe('API REST', () => {
 
     expect(response.statusCode).toBe(503);
     expect(response.json()).toMatchObject({ error: 'WEATHER_UNAVAILABLE' });
+  });
+
+  it('GET /api/air-quality devuelve la calidad del aire normalizada', async () => {
+    const app = await createTestApp(vi.fn());
+    const response = await app.inject({ method: 'GET', url: '/api/air-quality' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.json()).toEqual({
+      ...buildAirQuality(),
+      updatedAt: '2026-11-23T10:00:00.000Z',
+      stale: false,
+    });
+  });
+
+  it('GET /api/air-quality responde 503 si no hay datos y no afecta al tiempo', async () => {
+    const app = await createTestApp(
+      vi.fn().mockResolvedValue(buildSnapshot()),
+      vi.fn().mockRejectedValue(new Error('CAMS caído')),
+    );
+
+    const airQuality = await app.inject({ method: 'GET', url: '/api/air-quality' });
+    expect(airQuality.statusCode).toBe(503);
+    expect(airQuality.json()).toMatchObject({ error: 'AIR_QUALITY_UNAVAILABLE' });
+
+    const weather = await app.inject({ method: 'GET', url: '/api/weather' });
+    expect(weather.statusCode).toBe(200);
   });
 });

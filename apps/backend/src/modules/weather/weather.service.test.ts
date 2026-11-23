@@ -1,27 +1,23 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildSnapshot, weatherConfig } from '../../test/fixtures.js';
-import type { GeocodedPlace, WeatherProvider } from './weather.provider.js';
+import { buildSnapshot, navaluenga, weatherConfig } from '../../test/fixtures.js';
+import { LocationNotFoundError, type LocationService } from '../location/location.service.js';
+import type { WeatherProvider } from './weather.provider.js';
 import {
   createWeatherService,
-  LocationNotFoundError,
   RETRY_AFTER_FAILURE_MS,
   WeatherUnavailableError,
 } from './weather.service.js';
 
-const place: GeocodedPlace = {
-  name: 'Navaluenga',
-  country: 'España',
-  latitude: 40.41,
-  longitude: -4.71,
-  timezone: 'Europe/Madrid',
-};
-
 function createFakeProvider() {
   return {
-    geocode: vi.fn<WeatherProvider['geocode']>().mockResolvedValue(place),
+    geocode: vi.fn<WeatherProvider['geocode']>(),
     fetchForecast: vi.fn<WeatherProvider['fetchForecast']>().mockResolvedValue(buildSnapshot()),
   };
+}
+
+function createFakeLocationService() {
+  return { getLocation: vi.fn<LocationService['getLocation']>().mockResolvedValue(navaluenga) };
 }
 
 function createClock(start = Date.UTC(2026, 10, 23, 10)) {
@@ -34,49 +30,59 @@ function createClock(start = Date.UTC(2026, 10, 23, 10)) {
   };
 }
 
+function createService(overrides: { provider?: ReturnType<typeof createFakeProvider>; now?: () => number } = {}) {
+  const provider = overrides.provider ?? createFakeProvider();
+  const locationService = createFakeLocationService();
+  const service = createWeatherService({
+    provider,
+    locationService,
+    config: weatherConfig,
+    ...(overrides.now ? { now: overrides.now } : {}),
+  });
+  return { provider, locationService, service };
+}
+
 describe('createWeatherService', () => {
-  it('devuelve datos frescos con la fecha de actualización', async () => {
-    const provider = createFakeProvider();
+  it('devuelve datos frescos con la fecha de actualización y el tiempo hasta el próximo refresco', async () => {
     const clock = createClock();
-    const service = createWeatherService({ provider, config: weatherConfig, now: clock.now });
+    const { service, provider } = createService({ now: clock.now });
 
     const report = await service.getWeather();
 
     expect(report.stale).toBe(false);
     expect(report.updatedAt).toBe('2026-11-23T10:00:00.000Z');
+    expect(report.nextRefreshInMs).toBe(weatherConfig.refreshIntervalMs);
     expect(report.current.temperature).toBe(8.4);
+    expect(provider.fetchForecast).toHaveBeenCalledWith(navaluenga);
   });
 
   it('reutiliza la caché mientras no expira el intervalo de actualización', async () => {
-    const provider = createFakeProvider();
     const clock = createClock();
-    const service = createWeatherService({ provider, config: weatherConfig, now: clock.now });
+    const { service, provider, locationService } = createService({ now: clock.now });
 
     await service.getWeather();
     clock.advance(weatherConfig.refreshIntervalMs - 1);
-    await service.getWeather();
+    const cached = await service.getWeather();
     expect(provider.fetchForecast).toHaveBeenCalledTimes(1);
+    expect(cached.nextRefreshInMs).toBe(1);
 
     clock.advance(1);
     await service.getWeather();
     expect(provider.fetchForecast).toHaveBeenCalledTimes(2);
-    expect(provider.geocode).toHaveBeenCalledTimes(1);
+    expect(locationService.getLocation).toHaveBeenCalledTimes(2);
   });
 
   it('comparte una única petición entre solicitudes simultáneas', async () => {
-    const provider = createFakeProvider();
-    const service = createWeatherService({ provider, config: weatherConfig });
+    const { service, provider } = createService();
 
     await Promise.all([service.getWeather(), service.getWeather(), service.getWeather()]);
 
-    expect(provider.geocode).toHaveBeenCalledTimes(1);
     expect(provider.fetchForecast).toHaveBeenCalledTimes(1);
   });
 
   it('devuelve la última información válida marcada como desactualizada si el proveedor falla', async () => {
-    const provider = createFakeProvider();
     const clock = createClock();
-    const service = createWeatherService({ provider, config: weatherConfig, now: clock.now });
+    const { service, provider } = createService({ now: clock.now });
 
     await service.getWeather();
     clock.advance(weatherConfig.refreshIntervalMs);
@@ -85,12 +91,12 @@ describe('createWeatherService', () => {
     const report = await service.getWeather();
     expect(report.stale).toBe(true);
     expect(report.updatedAt).toBe('2026-11-23T10:00:00.000Z');
+    expect(report.nextRefreshInMs).toBe(RETRY_AFTER_FAILURE_MS);
   });
 
   it('espera antes de reintentar tras un fallo y se recupera después', async () => {
-    const provider = createFakeProvider();
     const clock = createClock();
-    const service = createWeatherService({ provider, config: weatherConfig, now: clock.now });
+    const { service, provider } = createService({ now: clock.now });
 
     await service.getWeather();
     clock.advance(weatherConfig.refreshIntervalMs);
@@ -112,52 +118,28 @@ describe('createWeatherService', () => {
     const provider = createFakeProvider();
     provider.fetchForecast.mockRejectedValue(new Error('Open-Meteo caído'));
     const logger = { warn: vi.fn() };
-    const service = createWeatherService({ provider, config: weatherConfig, logger });
+    const service = createWeatherService({
+      provider,
+      locationService: createFakeLocationService(),
+      config: weatherConfig,
+      logger,
+    });
 
     await expect(service.getWeather()).rejects.toBeInstanceOf(WeatherUnavailableError);
     expect(logger.warn).toHaveBeenCalled();
   });
 
-  it('usa la localidad de respaldo si la principal no se encuentra', async () => {
-    const provider = createFakeProvider();
-    provider.geocode.mockImplementation(async (name) =>
-      name === 'Ávila' ? { ...place, name: 'Ávila' } : null,
-    );
-    const service = createWeatherService({ provider, config: weatherConfig });
-
-    await service.getWeather();
-
-    expect(provider.geocode).toHaveBeenNthCalledWith(1, 'Navaluenga', 'ES');
-    expect(provider.geocode).toHaveBeenNthCalledWith(2, 'Ávila', 'ES');
-    expect(provider.fetchForecast).toHaveBeenCalledWith(expect.objectContaining({ name: 'Ávila' }));
-  });
-
-  it('falla de forma controlada si no encuentra ninguna localidad', async () => {
-    const provider = createFakeProvider();
-    provider.geocode.mockResolvedValue(null);
-    const service = createWeatherService({ provider, config: weatherConfig });
+  it('falla de forma controlada si no se encuentra la localidad', async () => {
+    const locationService = createFakeLocationService();
+    locationService.getLocation.mockRejectedValue(new LocationNotFoundError('sin localidad'));
+    const service = createWeatherService({
+      provider: createFakeProvider(),
+      locationService,
+      config: weatherConfig,
+    });
 
     const error = await service.getWeather().catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(WeatherUnavailableError);
     expect(error instanceof Error && error.cause).toBeInstanceOf(LocationNotFoundError);
-  });
-
-  it('no usa geocoding si las coordenadas están configuradas', async () => {
-    const provider = createFakeProvider();
-    const service = createWeatherService({
-      provider,
-      config: { ...weatherConfig, coordinates: { latitude: 40.65, longitude: -4.7 } },
-    });
-
-    await service.getWeather();
-
-    expect(provider.geocode).not.toHaveBeenCalled();
-    expect(provider.fetchForecast).toHaveBeenCalledWith({
-      name: 'Navaluenga',
-      country: 'España',
-      latitude: 40.65,
-      longitude: -4.7,
-      timezone: 'Europe/Madrid',
-    });
   });
 });

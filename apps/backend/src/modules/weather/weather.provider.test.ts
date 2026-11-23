@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   buildForecast,
+  buildHourly,
   forecastResponse,
   geocodingResponse,
   jsonResponse,
@@ -23,6 +24,10 @@ describe('normalizeForecast', () => {
         apparentTemperature: 6.1,
         relativeHumidity: 72,
         windSpeed: 2.3,
+        windDirection: 90,
+        windGusts: 6.1,
+        pressure: 1024.9,
+        cloudCover: 96,
         precipitationProbability: 10,
         weatherCode: 2,
         description: 'Parcialmente nuboso',
@@ -31,6 +36,7 @@ describe('normalizeForecast', () => {
       },
       daily: { temperatureMax: 11.9, temperatureMin: 0.8 },
       forecast: buildForecast(),
+      hourly: buildHourly(),
     });
   });
 
@@ -45,6 +51,7 @@ describe('normalizeForecast', () => {
           temperature_2m_min: [null],
           precipitation_probability_max: [null],
         },
+        hourly: forecastResponse.hourly,
       },
       navaluenga,
     );
@@ -68,6 +75,44 @@ describe('normalizeForecast', () => {
     const { forecast } = normalizeForecast(forecastResponse, navaluenga);
     expect(forecast.map(({ icon }) => icon)).toEqual(['partly-cloudy', 'rain', 'cloudy']);
   });
+
+  it('usa null para las medidas auxiliares ausentes sin invalidar la previsión', () => {
+    const {
+      wind_direction_10m: _direction,
+      wind_gusts_10m: _gusts,
+      pressure_msl: _pressure,
+      cloud_cover: _clouds,
+      ...baseCurrent
+    } = forecastResponse.current;
+    const response = { ...forecastResponse, current: baseCurrent };
+
+    expect(forecastResponseSchema.safeParse(response).success).toBe(true);
+    expect(normalizeForecast(response, navaluenga).current).toMatchObject({
+      windDirection: null,
+      windGusts: null,
+      pressure: null,
+      cloudCover: null,
+    });
+  });
+
+  it('conserva los huecos de las series horarias como null', () => {
+    const { hourly } = normalizeForecast(
+      {
+        ...forecastResponse,
+        hourly: {
+          time: ['2026-11-23T18:00', '2026-11-23T19:00'],
+          temperature_2m: [9.2, null],
+          precipitation_probability: [null, 40],
+        },
+      },
+      navaluenga,
+    );
+
+    expect(hourly).toEqual([
+      { time: '2026-11-23T18:00', temperature: 9.2, precipitationProbability: null },
+      { time: '2026-11-23T19:00', temperature: null, precipitationProbability: 40 },
+    ]);
+  });
 });
 
 describe('forecastResponseSchema', () => {
@@ -84,6 +129,21 @@ describe('forecastResponseSchema', () => {
       forecastResponseSchema.safeParse({
         ...forecastResponse,
         current: { ...forecastResponse.current, relative_humidity_2m: '72' },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rechaza series horarias de distinta longitud o con horas no válidas', () => {
+    expect(
+      forecastResponseSchema.safeParse({
+        ...forecastResponse,
+        hourly: { ...forecastResponse.hourly, temperature_2m: [9.2] },
+      }).success,
+    ).toBe(false);
+    expect(
+      forecastResponseSchema.safeParse({
+        ...forecastResponse,
+        hourly: { ...forecastResponse.hourly, time: ['18:00', '19:00', '20:00'] },
       }).success,
     ).toBe(false);
   });
@@ -118,6 +178,9 @@ describe('createOpenMeteoProvider', () => {
     expect(url.searchParams.get('timezone')).toBe('Europe/Madrid');
     expect(url.searchParams.get('current')).toContain('precipitation_probability');
     expect(url.searchParams.get('forecast_days')).toBe('7');
+    expect(url.searchParams.get('forecast_hours')).toBe('24');
+    expect(url.searchParams.get('hourly')).toBe('temperature_2m,precipitation_probability');
+    expect(url.searchParams.get('current')).toContain('wind_direction_10m,wind_gusts_10m,pressure_msl,cloud_cover');
     expect(url.searchParams.get('daily')).toBe(
       'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
     );

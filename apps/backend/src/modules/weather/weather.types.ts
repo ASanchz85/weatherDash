@@ -18,19 +18,17 @@ export interface WeatherCondition {
   icon: WeatherIcon;
 }
 
-export interface ResolvedLocation {
-  name: string;
-  country: string;
-  latitude: number;
-  longitude: number;
-  timezone: string | null;
-}
-
 export interface CurrentWeather {
   temperature: number;
   apparentTemperature: number;
   relativeHumidity: number;
   windSpeed: number;
+  /** Dirección de la que viene el viento, en grados (0 = norte). */
+  windDirection: number | null;
+  windGusts: number | null;
+  /** Presión reducida al nivel del mar, en hPa. */
+  pressure: number | null;
+  cloudCover: number | null;
   precipitationProbability: number | null;
   weatherCode: number;
   description: string;
@@ -54,6 +52,13 @@ export interface DailyForecast {
   precipitationProbabilityMax: number | null;
 }
 
+export interface HourlyForecast {
+  /** Hora local de la localidad (YYYY-MM-DDTHH:mm). */
+  time: string;
+  temperature: number | null;
+  precipitationProbability: number | null;
+}
+
 /** Modelo interno estable, desacoplado de la respuesta de Open-Meteo. */
 export interface WeatherSnapshot {
   location: {
@@ -63,6 +68,8 @@ export interface WeatherSnapshot {
   current: CurrentWeather;
   daily: DailyWeather;
   forecast: DailyForecast[];
+  /** Próximas horas, empezando por la hora en curso. */
+  hourly: HourlyForecast[];
 }
 
 /** Respuesta pública de GET /api/weather. */
@@ -71,4 +78,6 @@ export interface WeatherReport extends WeatherSnapshot {
   updatedAt: string;
   /** true si el proveedor falló y se devuelve la última información válida. */
   stale: boolean;
+  /** Milisegundos hasta que conviene volver a consultar (próximo refresco o reintento del backend). */
+  nextRefreshInMs: number;
 }
