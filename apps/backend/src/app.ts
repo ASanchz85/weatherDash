@@ -1,7 +1,8 @@
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
-import type { WeatherConfig } from './config/env.js';
+import type { UiConfig, WeatherConfig } from './config/env.js';
 import { healthRoutes } from './modules/health/health.routes.js';
+import { uiRoutes } from './modules/ui/ui.routes.js';
 import type { WeatherProvider } from './modules/weather/weather.provider.js';
 import { weatherRoutes } from './modules/weather/weather.routes.js';
 import { createWeatherService } from './modules/weather/weather.service.js';
@@ -9,6 +10,7 @@ import { staticFrontend } from './plugins/static.js';
 
 export interface BuildAppOptions {
   weatherConfig: WeatherConfig;
+  uiConfig: UiConfig;
   weatherProvider: WeatherProvider;
   /** Directorio del frontend compilado; null para no servir estáticos (desarrollo y tests). */
   staticDir: string | null;
@@ -20,6 +22,7 @@ export interface BuildAppOptions {
 
 export async function buildApp({
   weatherConfig,
+  uiConfig,
   weatherProvider,
   staticDir,
   prefetchWeather = false,
@@ -36,6 +39,7 @@ export async function buildApp({
   });
 
   await app.register(healthRoutes);
+  await app.register(uiRoutes, { uiConfig });
   await app.register(weatherRoutes, { weatherService });
   if (staticDir) await app.register(staticFrontend, { root: staticDir });
 

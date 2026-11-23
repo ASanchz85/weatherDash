@@ -11,6 +11,7 @@ const config = loadConfig();
 
 const app = await buildApp({
   weatherConfig: config.weather,
+  uiConfig: config.ui,
   weatherProvider: createOpenMeteoProvider({ requestTimeoutMs: config.weather.requestTimeoutMs }),
   staticDir: config.staticDir,
   prefetchWeather: true,

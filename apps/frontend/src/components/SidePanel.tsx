@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { Panel } from './Panel';
 import styles from './SidePanel.module.css';
 
 interface SidePanelProps {
@@ -9,8 +10,8 @@ interface SidePanelProps {
 
 export function SidePanel({ label, children }: SidePanelProps) {
   return (
-    <aside className={styles.panel} aria-label={label}>
+    <Panel as="aside" label={label} className={styles.padding}>
       {children}
-    </aside>
+    </Panel>
   );
 }

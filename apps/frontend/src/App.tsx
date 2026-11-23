@@ -1,14 +1,32 @@
+import { useState } from 'react';
+
 import styles from './App.module.css';
 import { ForecastPanel } from './components/ForecastPanel';
 import { HeroPanel } from './components/HeroPanel';
 import { SidePanel } from './components/SidePanel';
 import { Clock } from './features/clock/Clock';
 import { WeeklyForecast } from './features/forecast/WeeklyForecast';
+import { parseDebugOverrides } from './features/rotation/debugOverrides';
+import { RotatingView, type RotatingViewItem } from './features/rotation/RotatingView';
+import { useRotation } from './features/rotation/useRotation';
+import { useRotationInterval } from './features/rotation/useRotationInterval';
 import { useWeather } from './features/weather/useWeather';
 import { WeatherPanel } from './features/weather/WeatherPanel';
 
 export function App() {
+  // Los datos se piden aquí, fuera de las vistas rotatorias, para que rotar nunca provoque una consulta.
   const weather = useWeather();
+  const rotationIntervalMs = useRotationInterval();
+  const [{ page: pinnedPage }] = useState(() => parseDebugOverrides(window.location.search));
+
+  const sideViews: RotatingViewItem[] = [
+    { id: 'weather', content: <WeatherPanel state={weather} /> },
+  ];
+  const bottomViews: RotatingViewItem[] = [
+    { id: 'weekly', content: <WeeklyForecast state={weather} /> },
+  ];
+
+  const page = useRotation(Math.max(sideViews.length, bottomViews.length), rotationIntervalMs, pinnedPage);
 
   return (
     <main className={styles.dashboard}>
@@ -16,10 +34,10 @@ export function App() {
         <Clock />
       </HeroPanel>
       <SidePanel label="Meteorología">
-        <WeatherPanel state={weather} />
+        <RotatingView views={sideViews} page={page} />
       </SidePanel>
       <ForecastPanel label="Predicción semanal">
-        <WeeklyForecast state={weather} />
+        <RotatingView views={bottomViews} page={page} />
       </ForecastPanel>
     </main>
   );
