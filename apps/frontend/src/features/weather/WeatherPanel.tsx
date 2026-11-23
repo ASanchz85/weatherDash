@@ -2,11 +2,13 @@ import { CloudOff } from 'lucide-react';
 
 import styles from './WeatherPanel.module.css';
 import { WeatherDetails } from './WeatherDetails';
-import { useWeather } from './useWeather';
+import type { WeatherState } from './useWeather';
 
-export function WeatherPanel() {
-  const state = useWeather();
+interface WeatherPanelProps {
+  state: WeatherState;
+}
 
+export function WeatherPanel({ state }: WeatherPanelProps) {
   switch (state.status) {
     case 'loading':
       return (
