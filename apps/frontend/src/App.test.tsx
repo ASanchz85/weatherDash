@@ -54,7 +54,7 @@ describe('App', () => {
       await Promise.resolve();
     });
 
-    const forecast = screen.getByRole('region', { name: 'Predicción semanal' });
+    const forecast = screen.getByRole('region', { name: 'Predicción' });
     expect(within(forecast).getAllByRole('listitem')).toHaveLength(7);
     expect(fetchWeather).toHaveBeenCalledTimes(1);
   });
@@ -90,6 +90,17 @@ describe('App', () => {
       expect(within(side).getByText('Razonable')).toBeInTheDocument();
       expect(fetchWeather).toHaveBeenCalledTimes(1);
       expect(fetchAirQuality).toHaveBeenCalledTimes(1);
+    });
+
+    it('muestra la gráfica horaria en la franja inferior con ?page=1, sin nuevas consultas', async () => {
+      window.history.replaceState(null, '', '/?page=1');
+      vi.mocked(fetchWeather).mockResolvedValue(buildWeatherData());
+      await renderApp();
+
+      const forecast = screen.getByRole('region', { name: 'Predicción' });
+      expect(within(forecast).getByText('Ahora')).toBeInTheDocument();
+      expect(within(forecast).queryByRole('listitem')).not.toBeInTheDocument();
+      expect(fetchWeather).toHaveBeenCalledTimes(1);
     });
   });
 

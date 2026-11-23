@@ -41,6 +41,8 @@
 
   --space-page: clamp(16px, 2.4vmin, 40px);
   --space-gap: clamp(12px, 2vmin, 32px);
+  /* Altura del contenido de la franja inferior: igual en todas sus vistas para que al rotar no haya saltos */
+  --forecast-content-height: clamp(80px, 17vmin, 180px);
 
   color-scheme: dark;
 }

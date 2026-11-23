@@ -6,6 +6,7 @@ import { HeroPanel } from './components/HeroPanel';
 import { SidePanel } from './components/SidePanel';
 import { Clock } from './features/clock/Clock';
 import { useDashboardData } from './features/dashboard/useDashboardData';
+import { HourlyForecast } from './features/forecast/HourlyForecast';
 import { WeeklyForecast } from './features/forecast/WeeklyForecast';
 import { parseDebugOverrides } from './features/rotation/debugOverrides';
 import { RotatingView, type RotatingViewItem } from './features/rotation/RotatingView';
@@ -28,6 +29,7 @@ export function App() {
   ];
   const bottomViews: RotatingViewItem[] = [
     { id: 'weekly', content: <WeeklyForecast state={weather} /> },
+    { id: 'hourly', content: <HourlyForecast state={weather} /> },
   ];
 
   const { page, tick, isRotating } = useRotation(
@@ -47,7 +49,7 @@ export function App() {
       <SidePanel label="Meteorología">
         <RotatingView views={sideViews} page={page} />
       </SidePanel>
-      <ForecastPanel label="Predicción semanal">
+      <ForecastPanel label="Predicción">
         <RotatingView views={bottomViews} page={page} />
       </ForecastPanel>
     </main>
