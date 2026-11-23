@@ -25,6 +25,13 @@ export interface DailyForecast {
   precipitationProbabilityMax: number | null;
 }
 
+export interface HourlyForecast {
+  /** Hora local de la localidad (YYYY-MM-DDTHH:mm). */
+  time: string;
+  temperature: number | null;
+  precipitationProbability: number | null;
+}
+
 export interface WeatherData {
   location: {
     name: string;
@@ -35,6 +42,12 @@ export interface WeatherData {
     apparentTemperature: number;
     relativeHumidity: number;
     windSpeed: number;
+    /** Dirección de la que viene el viento, en grados (0 = norte). */
+    windDirection: number | null;
+    windGusts: number | null;
+    /** Presión reducida al nivel del mar, en hPa. */
+    pressure: number | null;
+    cloudCover: number | null;
     precipitationProbability: number | null;
     weatherCode: number;
     description: string;
@@ -46,6 +59,10 @@ export interface WeatherData {
     temperatureMin: number | null;
   };
   forecast: DailyForecast[];
+  /** Próximas horas, empezando por la hora en curso. */
+  hourly: HourlyForecast[];
   updatedAt: string;
   stale: boolean;
+  /** Milisegundos hasta que conviene volver a consultar, calculados por el servidor. */
+  nextRefreshInMs: number;
 }

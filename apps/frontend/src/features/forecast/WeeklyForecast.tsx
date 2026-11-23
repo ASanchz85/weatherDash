@@ -3,7 +3,7 @@ import { Umbrella } from 'lucide-react';
 import type { DailyForecast } from '../../types/weather';
 import { WeatherIcon } from '../weather/WeatherIcon';
 import { formatPercentage, formatTemperature } from '../weather/weatherFormat';
-import type { WeatherState } from '../weather/useWeather';
+import type { WeatherState } from '../dashboard/useDashboardData';
 import styles from './WeeklyForecast.module.css';
 import { formatWeekdayShort } from './forecastFormat';
 

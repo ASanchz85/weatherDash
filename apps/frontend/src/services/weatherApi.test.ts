@@ -50,6 +50,52 @@ describe('parseWeatherData', () => {
       parseWeatherData({ ...buildWeatherData(), forecast: [{ ...first, temperatureMax: '12' }, ...rest] }),
     ).toThrow(WeatherApiError);
   });
+
+  it('acepta valores nulos en el viento, la presión, la nubosidad y las horas', () => {
+    const base = buildWeatherData();
+    const [first, ...rest] = base.hourly;
+    const data = buildWeatherData({
+      current: { ...base.current, windDirection: null, windGusts: null, pressure: null, cloudCover: null },
+      hourly: [{ ...first!, temperature: null, precipitationProbability: null }, ...rest],
+    });
+
+    expect(parseWeatherData(JSON.parse(JSON.stringify(data)))).toEqual(data);
+  });
+
+  it('rechaza medidas actuales ausentes o con tipo incorrecto', () => {
+    const { windDirection: _omitted, ...currentWithoutDirection } = buildWeatherData().current;
+    expect(() =>
+      parseWeatherData({ ...buildWeatherData(), current: currentWithoutDirection }),
+    ).toThrow(WeatherApiError);
+    expect(() =>
+      parseWeatherData({
+        ...buildWeatherData(),
+        current: { ...buildWeatherData().current, pressure: '1024' },
+      }),
+    ).toThrow(WeatherApiError);
+  });
+
+  it('rechaza una predicción horaria ausente o con formato inesperado', () => {
+    const { hourly: _omitted, ...withoutHourly } = buildWeatherData();
+    expect(() => parseWeatherData(withoutHourly)).toThrow(WeatherApiError);
+
+    const [first, ...rest] = buildWeatherData().hourly;
+    expect(() =>
+      parseWeatherData({ ...buildWeatherData(), hourly: [{ ...first, time: '18:00' }, ...rest] }),
+    ).toThrow(WeatherApiError);
+    expect(() =>
+      parseWeatherData({ ...buildWeatherData(), hourly: [{ ...first, temperature: '9' }, ...rest] }),
+    ).toThrow(WeatherApiError);
+  });
+
+  it('exige una pista de refresco válida', () => {
+    const { nextRefreshInMs: _omitted, ...withoutHint } = buildWeatherData();
+    expect(() => parseWeatherData(withoutHint)).toThrow(WeatherApiError);
+    expect(() => parseWeatherData({ ...buildWeatherData(), nextRefreshInMs: -1 })).toThrow(WeatherApiError);
+    expect(() => parseWeatherData({ ...buildWeatherData(), nextRefreshInMs: '900000' })).toThrow(
+      WeatherApiError,
+    );
+  });
 });
 
 describe('fetchWeather', () => {

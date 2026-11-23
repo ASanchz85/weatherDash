@@ -2,10 +2,11 @@ import { act, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ROTATION_FADE_MS } from '../../config';
+import { fetchAirQuality } from '../../services/airQualityApi';
 import { fetchUiConfig } from '../../services/configApi';
 import { fetchWeather } from '../../services/weatherApi';
-import { buildWeatherData } from '../../test/weatherFixtures';
-import { useWeather } from '../weather/useWeather';
+import { buildAirQualityData, buildWeatherData } from '../../test/weatherFixtures';
+import { useDashboardData } from '../dashboard/useDashboardData';
 import { RotatingView } from './RotatingView';
 import { useRotation } from './useRotation';
 import { useRotationInterval } from './useRotationInterval';
@@ -13,6 +14,11 @@ import { useRotationInterval } from './useRotationInterval';
 vi.mock('../../services/weatherApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/weatherApi')>()),
   fetchWeather: vi.fn(),
+}));
+
+vi.mock('../../services/airQualityApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/airQualityApi')>()),
+  fetchAirQuality: vi.fn(),
 }));
 
 vi.mock('../../services/configApi', async (importOriginal) => ({
@@ -24,7 +30,7 @@ const ROTATION_INTERVAL_MS = 10_000;
 
 /** Misma composición que App: los datos y la rotación viven fuera de las vistas. */
 function Harness() {
-  const weather = useWeather();
+  const { weather, airQuality } = useDashboardData();
   const intervalMs = useRotationInterval();
   const page = useRotation(2, intervalMs).page;
 
@@ -33,7 +39,7 @@ function Harness() {
       page={page}
       views={[
         { id: 'a', content: <p>Vista A {weather.status}</p> },
-        { id: 'b', content: <p>Vista B {weather.status}</p> },
+        { id: 'b', content: <p>Vista B {weather.status} {airQuality.status}</p> },
       ]}
     />
   );
@@ -49,12 +55,14 @@ describe('rotación y datos', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.mocked(fetchWeather).mockResolvedValue(buildWeatherData());
+    vi.mocked(fetchAirQuality).mockResolvedValue(buildAirQualityData());
     vi.mocked(fetchUiConfig).mockResolvedValue({ rotationIntervalMs: ROTATION_INTERVAL_MS });
   });
 
   afterEach(() => {
     vi.useRealTimers();
     vi.mocked(fetchWeather).mockReset();
+    vi.mocked(fetchAirQuality).mockReset();
     vi.mocked(fetchUiConfig).mockReset();
   });
 
@@ -63,9 +71,10 @@ describe('rotación y datos', () => {
     await flushPromises();
     expect(screen.getByText('Vista A ready')).toBeInTheDocument();
     expect(fetchWeather).toHaveBeenCalledTimes(1);
+    expect(fetchAirQuality).toHaveBeenCalledTimes(1);
     expect(fetchUiConfig).toHaveBeenCalledTimes(1);
 
-    for (const expected of ['Vista B ready', 'Vista A ready', 'Vista B ready']) {
+    for (const expected of ['Vista B ready ready', 'Vista A ready', 'Vista B ready ready']) {
       // act agrupa los cambios de estado: el fundido de salida empieza cuando termina el primer avance.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(ROTATION_INTERVAL_MS);
@@ -77,6 +86,7 @@ describe('rotación y datos', () => {
     }
 
     expect(fetchWeather).toHaveBeenCalledTimes(1);
+    expect(fetchAirQuality).toHaveBeenCalledTimes(1);
     expect(fetchUiConfig).toHaveBeenCalledTimes(1);
   });
 
