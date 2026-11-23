@@ -17,6 +17,11 @@ export function formatWindSpeed(value: number): string {
   return `${Math.round(value)} km/h`;
 }
 
+/** Hora (HH:mm) de un instante local de la localidad (YYYY-MM-DDTHH:mm), sin conversión de zona. */
+export function formatLocalTime(value: string | null): string {
+  return value === null ? PLACEHOLDER : value.slice(11, 16);
+}
+
 /** Hora de la última actualización; incluye el día si no es hoy. */
 export function formatUpdatedAt(isoDate: string, now: Date = new Date()): string {
   const date = new Date(isoDate);

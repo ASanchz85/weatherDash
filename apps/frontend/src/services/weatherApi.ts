@@ -41,13 +41,20 @@ function isIconName(value: unknown): value is WeatherIconName {
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 
+function isNullableDateTime(value: unknown): value is string | null {
+  return value === null || (typeof value === 'string' && ISO_DATE_TIME_PATTERN.test(value));
+}
+
 function parseHourlyForecast(value: unknown): HourlyForecast {
   if (
     !isRecord(value) ||
     typeof value.time !== 'string' ||
     !ISO_DATE_TIME_PATTERN.test(value.time) ||
     !isNullableNumber(value.temperature) ||
-    !isNullableNumber(value.precipitationProbability)
+    !isNullableNumber(value.precipitationProbability) ||
+    !isNumber(value.weatherCode) ||
+    !isIconName(value.icon) ||
+    typeof value.isDay !== 'boolean'
   ) {
     throw new WeatherApiError('Predicción horaria con formato inesperado');
   }
@@ -56,6 +63,9 @@ function parseHourlyForecast(value: unknown): HourlyForecast {
     time: value.time,
     temperature: value.temperature,
     precipitationProbability: value.precipitationProbability,
+    weatherCode: value.weatherCode,
+    icon: value.icon,
+    isDay: value.isDay,
   };
 }
 
@@ -111,6 +121,8 @@ export function parseWeatherData(value: unknown): WeatherData {
     !isRecord(daily) ||
     !isNullableNumber(daily.temperatureMax) ||
     !isNullableNumber(daily.temperatureMin) ||
+    !isNullableDateTime(daily.sunrise) ||
+    !isNullableDateTime(daily.sunset) ||
     !Array.isArray(forecast) ||
     !Array.isArray(hourly) ||
     typeof updatedAt !== 'string' ||
@@ -139,7 +151,12 @@ export function parseWeatherData(value: unknown): WeatherData {
       icon: current.icon,
       isDay: current.isDay,
     },
-    daily: { temperatureMax: daily.temperatureMax, temperatureMin: daily.temperatureMin },
+    daily: {
+      temperatureMax: daily.temperatureMax,
+      temperatureMin: daily.temperatureMin,
+      sunrise: daily.sunrise,
+      sunset: daily.sunset,
+    },
     forecast: forecast.map(parseDailyForecast),
     hourly: hourly.map(parseHourlyForecast),
     updatedAt,

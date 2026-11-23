@@ -17,18 +17,17 @@ import {
 } from 'lucide-react';
 
 import type { WeatherIconName } from '../../types/weather';
+import { weatherTone } from './weatherTone';
 
 interface IconVariant {
   day: LucideIcon;
   night: LucideIcon;
-  /** Tono cálido para condiciones soleadas diurnas. */
-  warm?: boolean;
 }
 
 const ICONS: Readonly<Record<WeatherIconName, IconVariant>> = {
-  clear: { day: Sun, night: Moon, warm: true },
-  'mostly-clear': { day: Sun, night: Moon, warm: true },
-  'partly-cloudy': { day: CloudSun, night: CloudMoon, warm: true },
+  clear: { day: Sun, night: Moon },
+  'mostly-clear': { day: Sun, night: Moon },
+  'partly-cloudy': { day: CloudSun, night: CloudMoon },
   cloudy: { day: Cloud, night: Cloud },
   fog: { day: CloudFog, night: CloudFog },
   drizzle: { day: CloudDrizzle, night: CloudDrizzle },
@@ -53,7 +52,7 @@ export function WeatherIcon({ name, isDay, className }: WeatherIconProps) {
   return (
     <Icon
       className={className}
-      data-tone={isDay && variant.warm ? 'warm' : 'neutral'}
+      data-tone={weatherTone(name, isDay)}
       strokeWidth={1.5}
       aria-hidden="true"
     />

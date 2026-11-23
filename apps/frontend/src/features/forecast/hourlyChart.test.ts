@@ -15,6 +15,9 @@ function hours(temperatures: (number | null)[]): HourlyForecast[] {
     time: `2026-11-23T${String(index).padStart(2, '0')}:00`,
     temperature,
     precipitationProbability: 0,
+    weatherCode: 3,
+    icon: 'cloudy',
+    isDay: false,
   }));
 }
 
