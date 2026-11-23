@@ -1,0 +1,139 @@
+.hourly {
+  display: flex;
+  flex-direction: column;
+  height: var(--forecast-content-height);
+  font-size: clamp(0.72rem, 1.7vmin, 1.1rem);
+}
+
+.plot {
+  position: relative;
+  flex: 1;
+}
+
+.bars {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  align-items: end;
+  justify-items: center;
+}
+
+.bar {
+  width: 60%;
+  border-radius: 4px 4px 0 0;
+  background: color-mix(in srgb, var(--color-accent) 32%, transparent);
+}
+
+.line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.path {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* El trazo no se deforma con el estiramiento no uniforme del viewBox */
+  vector-effect: non-scaling-stroke;
+}
+
+.marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.dot {
+  display: block;
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  background: var(--color-text);
+}
+
+.now .dot {
+  background: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.temperature {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: 0.35em;
+  transform: translateX(-50%);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.now .temperature {
+  color: var(--color-accent);
+}
+
+.legend {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  gap: 1.2em;
+  margin: 0;
+  font-size: 0.85em;
+  color: var(--color-text-faint);
+}
+
+.legendLine,
+.legendBar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.legendLine::before {
+  content: '';
+  width: 1.2em;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-text);
+}
+
+.legendBar::before {
+  content: '';
+  width: 0.9em;
+  height: 0.9em;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-accent) 32%, transparent);
+}
+
+.hours {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  padding-top: 0.4em;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.hours span {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.nowHour {
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.message {
+  display: grid;
+  place-items: center;
+  min-height: var(--forecast-content-height);
+  margin: 0;
+  color: var(--color-text-muted);
+  text-align: center;
+}
