@@ -26,7 +26,7 @@ const ROTATION_INTERVAL_MS = 10_000;
 function Harness() {
   const weather = useWeather();
   const intervalMs = useRotationInterval();
-  const page = useRotation(2, intervalMs);
+  const page = useRotation(2, intervalMs).page;
 
   return (
     <RotatingView

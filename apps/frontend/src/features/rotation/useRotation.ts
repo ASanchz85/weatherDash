@@ -1,18 +1,32 @@
 import { useEffect, useState } from 'react';
 
+export interface RotationState {
+  /** Índice de la página activa. */
+  page: number;
+  /** Ciclos completados; permite sincronizar otros cambios con la rotación. */
+  tick: number;
+  isRotating: boolean;
+}
+
 /**
- * Índice de la página activa, que avanza cada intervalMs con un único temporizador.
- * Sin intervalo (null, 0), con una sola página o con una página fijada no rota.
+ * Página activa y ciclos, que avanzan cada intervalMs con un único temporizador.
+ * Sin intervalo (null, 0) o con una página fijada no rota. El temporizador sigue activo con una sola página
+ * porque el tick también sincroniza el cambio de tema.
  */
-export function useRotation(pageCount: number, intervalMs: number | null, pinnedPage: number | null = null): number {
+export function useRotation(
+  pageCount: number,
+  intervalMs: number | null,
+  pinnedPage: number | null = null,
+): RotationState {
   const [tick, setTick] = useState(0);
+  const isRotating = pinnedPage === null && intervalMs !== null && intervalMs > 0;
 
   useEffect(() => {
-    if (pinnedPage !== null || !intervalMs || intervalMs <= 0 || pageCount <= 1) return;
+    if (!isRotating) return;
 
     const id = window.setInterval(() => setTick((previous) => previous + 1), intervalMs);
     return () => window.clearInterval(id);
-  }, [intervalMs, pageCount, pinnedPage]);
+  }, [isRotating, intervalMs]);
 
-  return (pinnedPage ?? tick) % Math.max(pageCount, 1);
+  return { page: (pinnedPage ?? tick) % Math.max(pageCount, 1), tick, isRotating };
 }
