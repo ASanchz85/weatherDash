@@ -26,6 +26,12 @@
   --color-text-faint: #6f7a8d;
   --color-accent: #f2803a;
   --color-accent-soft: rgb(242 128 58 / 0.16);
+  /* Naranja: sol y resaltados; azul: lluvia */
+  --color-rain: #5eaaf0;
+  --color-rain-soft: rgb(94 170 240 / 0.16);
+  /* Resaltado sutil («Hoy», sensación): tinte suave con un borde fino */
+  --highlight-bg: var(--color-accent-soft);
+  --highlight-ring: color-mix(in srgb, var(--color-accent) 45%, transparent);
   --color-good: #7ccf8e;
   --color-warning: #f0c35a;
   --color-warning-soft: rgb(240 195 90 / 0.14);

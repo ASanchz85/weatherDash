@@ -34,7 +34,12 @@ describe('normalizeForecast', () => {
         icon: 'partly-cloudy',
         isDay: true,
       },
-      daily: { temperatureMax: 11.9, temperatureMin: 0.8 },
+      daily: {
+        temperatureMax: 11.9,
+        temperatureMin: 0.8,
+        sunrise: '2026-11-23T08:11',
+        sunset: '2026-11-23T17:49',
+      },
       forecast: buildForecast(),
       hourly: buildHourly(),
     });
@@ -50,6 +55,8 @@ describe('normalizeForecast', () => {
           temperature_2m_max: [null],
           temperature_2m_min: [null],
           precipitation_probability_max: [null],
+          sunrise: [null],
+          sunset: [''],
         },
         hourly: forecastResponse.hourly,
       },
@@ -57,7 +64,12 @@ describe('normalizeForecast', () => {
     );
     expect(snapshot.current.precipitationProbability).toBeNull();
     expect(snapshot.current.isDay).toBe(false);
-    expect(snapshot.daily).toEqual({ temperatureMax: null, temperatureMin: null });
+    expect(snapshot.daily).toEqual({
+      temperatureMax: null,
+      temperatureMin: null,
+      sunrise: null,
+      sunset: null,
+    });
     expect(snapshot.forecast).toEqual([
       {
         date: '2026-11-23',
@@ -103,14 +115,30 @@ describe('normalizeForecast', () => {
           time: ['2026-11-23T18:00', '2026-11-23T19:00'],
           temperature_2m: [9.2, null],
           precipitation_probability: [null, 40],
+          weather_code: [0, 63],
+          is_day: [1, 0],
         },
       },
       navaluenga,
     );
 
     expect(hourly).toEqual([
-      { time: '2026-11-23T18:00', temperature: 9.2, precipitationProbability: null },
-      { time: '2026-11-23T19:00', temperature: null, precipitationProbability: 40 },
+      {
+        time: '2026-11-23T18:00',
+        temperature: 9.2,
+        precipitationProbability: null,
+        weatherCode: 0,
+        icon: 'clear',
+        isDay: true,
+      },
+      {
+        time: '2026-11-23T19:00',
+        temperature: null,
+        precipitationProbability: 40,
+        weatherCode: 63,
+        icon: 'rain',
+        isDay: false,
+      },
     ]);
   });
 });
@@ -179,10 +207,12 @@ describe('createOpenMeteoProvider', () => {
     expect(url.searchParams.get('current')).toContain('precipitation_probability');
     expect(url.searchParams.get('forecast_days')).toBe('7');
     expect(url.searchParams.get('forecast_hours')).toBe('24');
-    expect(url.searchParams.get('hourly')).toBe('temperature_2m,precipitation_probability');
+    expect(url.searchParams.get('hourly')).toBe(
+      'temperature_2m,precipitation_probability,weather_code,is_day',
+    );
     expect(url.searchParams.get('current')).toContain('wind_direction_10m,wind_gusts_10m,pressure_msl,cloud_cover');
     expect(url.searchParams.get('daily')).toBe(
-      'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+      'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset',
     );
     expect(snapshot.current.description).toBe('Parcialmente nuboso');
     expect(snapshot.forecast).toHaveLength(3);

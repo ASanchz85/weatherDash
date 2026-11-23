@@ -37,9 +37,11 @@ const DAILY_FIELDS = [
   'temperature_2m_max',
   'temperature_2m_min',
   'precipitation_probability_max',
+  'sunrise',
+  'sunset',
 ] as const;
 
-const HOURLY_FIELDS = ['temperature_2m', 'precipitation_probability'] as const;
+const HOURLY_FIELDS = ['temperature_2m', 'precipitation_probability', 'weather_code', 'is_day'] as const;
 
 /** Contrato del proveedor meteorológico; el resto de la aplicación no conoce Open-Meteo. */
 export interface WeatherProvider {
@@ -123,18 +125,34 @@ export function normalizeForecast(data: ForecastResponse, location: ResolvedLoca
     daily: {
       temperatureMax: daily.temperature_2m_max[0] ?? null,
       temperatureMin: daily.temperature_2m_min[0] ?? null,
+      sunrise: toLocalDateTime(daily.sunrise[0]),
+      sunset: toLocalDateTime(daily.sunset[0]),
     },
     forecast: normalizeDailyForecast(daily),
     hourly: normalizeHourlyForecast(hourly),
   };
 }
 
+const LOCAL_DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+
+function toLocalDateTime(value: string | null | undefined): string | null {
+  return value != null && LOCAL_DATE_TIME_PATTERN.test(value) ? value : null;
+}
+
 function normalizeHourlyForecast(hourly: ForecastResponse['hourly']): HourlyForecast[] {
-  return hourly.time.map((time, index) => ({
-    time,
-    temperature: hourly.temperature_2m[index] ?? null,
-    precipitationProbability: hourly.precipitation_probability[index] ?? null,
-  }));
+  return hourly.time.flatMap((time, index) => {
+    const weatherCode = hourly.weather_code[index];
+    if (weatherCode === undefined) return [];
+
+    return {
+      time,
+      temperature: hourly.temperature_2m[index] ?? null,
+      precipitationProbability: hourly.precipitation_probability[index] ?? null,
+      weatherCode,
+      icon: interpretWeatherCode(weatherCode).icon,
+      isDay: hourly.is_day[index] === 1,
+    };
+  });
 }
 
 function normalizeDailyForecast(daily: ForecastResponse['daily']): DailyForecast[] {

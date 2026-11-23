@@ -38,6 +38,13 @@ describe('WeeklyForecast', () => {
     expect(within(tomorrow).getByText('65%')).toBeInTheDocument();
   });
 
+  it('destaca en azul los días con lluvia y en naranja los soleados', () => {
+    render(<WeeklyForecast state={{ status: 'ready', data: buildWeatherData(), refreshFailed: false }} />);
+
+    const tones = screen.getAllByRole('listitem').map((day) => day.getAttribute('data-tone'));
+    expect(tones).toEqual(['neutral', 'rain', 'neutral', 'sun', 'sun', 'neutral', 'neutral']);
+  });
+
   it('muestra «—» cuando faltan valores', () => {
     const data = buildWeatherData();
     const [first, ...rest] = data.forecast;

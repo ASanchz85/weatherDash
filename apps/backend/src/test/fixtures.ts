@@ -48,11 +48,15 @@ export const forecastResponse: ForecastResponse = {
     temperature_2m_max: [11.9, 10.4, 9.6],
     temperature_2m_min: [0.8, 2.6, 4.6],
     precipitation_probability_max: [0, 65, 25],
+    sunrise: ['2026-11-23T08:11', '2026-11-24T08:12', '2026-11-25T08:13'],
+    sunset: ['2026-11-23T17:49', '2026-11-24T17:48', '2026-11-25T17:47'],
   },
   hourly: {
     time: ['2026-11-23T18:00', '2026-11-23T19:00', '2026-11-23T20:00'],
     temperature_2m: [9.2, 7.6, 6.3],
     precipitation_probability: [0, 0, 20],
+    weather_code: [1, 3, 61],
+    is_day: [1, 0, 0],
   },
 };
 
@@ -107,7 +111,12 @@ export function buildSnapshot(temperature = 8.4): WeatherSnapshot {
       icon: 'partly-cloudy',
       isDay: true,
     },
-    daily: { temperatureMax: 11.9, temperatureMin: 0.8 },
+    daily: {
+      temperatureMax: 11.9,
+      temperatureMin: 0.8,
+      sunrise: '2026-11-23T08:11',
+      sunset: '2026-11-23T17:49',
+    },
     forecast: buildForecast(),
     hourly: buildHourly(),
   };
@@ -115,9 +124,30 @@ export function buildSnapshot(temperature = 8.4): WeatherSnapshot {
 
 export function buildHourly(): HourlyForecast[] {
   return [
-    { time: '2026-11-23T18:00', temperature: 9.2, precipitationProbability: 0 },
-    { time: '2026-11-23T19:00', temperature: 7.6, precipitationProbability: 0 },
-    { time: '2026-11-23T20:00', temperature: 6.3, precipitationProbability: 20 },
+    {
+      time: '2026-11-23T18:00',
+      temperature: 9.2,
+      precipitationProbability: 0,
+      weatherCode: 1,
+      icon: 'mostly-clear',
+      isDay: true,
+    },
+    {
+      time: '2026-11-23T19:00',
+      temperature: 7.6,
+      precipitationProbability: 0,
+      weatherCode: 3,
+      icon: 'cloudy',
+      isDay: false,
+    },
+    {
+      time: '2026-11-23T20:00',
+      temperature: 6.3,
+      precipitationProbability: 20,
+      weatherCode: 61,
+      icon: 'rain',
+      isDay: false,
+    },
   ];
 }
 

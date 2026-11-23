@@ -39,6 +39,9 @@ export interface CurrentWeather {
 export interface DailyWeather {
   temperatureMax: number | null;
   temperatureMin: number | null;
+  /** Hora local de hoy (YYYY-MM-DDTHH:mm). */
+  sunrise: string | null;
+  sunset: string | null;
 }
 
 export interface DailyForecast {
@@ -57,6 +60,9 @@ export interface HourlyForecast {
   time: string;
   temperature: number | null;
   precipitationProbability: number | null;
+  weatherCode: number;
+  icon: WeatherIcon;
+  isDay: boolean;
 }
 
 /** Modelo interno estable, desacoplado de la respuesta de Open-Meteo. */

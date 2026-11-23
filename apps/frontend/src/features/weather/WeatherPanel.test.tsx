@@ -36,6 +36,28 @@ describe('WeatherPanel', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
+  it('muestra la hora del amanecer y del atardecer, o un guion si no existen', () => {
+    const { rerender } = render(
+      <WeatherPanel state={{ status: 'ready', data: buildWeatherData(), refreshFailed: false }} />,
+    );
+    expect(screen.getByText('Amanecer')).toBeInTheDocument();
+    expect(screen.getByText('08:11')).toBeInTheDocument();
+    expect(screen.getByText('17:49')).toBeInTheDocument();
+
+    const data = buildWeatherData();
+    rerender(
+      <WeatherPanel
+        state={{
+          status: 'ready',
+          data: { ...data, daily: { ...data.daily, sunrise: null, sunset: null } },
+          refreshFailed: false,
+        }}
+      />,
+    );
+    expect(screen.queryByText('08:11')).not.toBeInTheDocument();
+    expect(screen.getAllByText('—')).toHaveLength(2);
+  });
+
   it('muestra un error controlado si no hay datos disponibles', () => {
     render(
       <WeatherPanel

@@ -3,16 +3,29 @@ import type { DailyForecast, HourlyForecast, WeatherData } from '../types/weathe
 
 export const NEXT_REFRESH_IN_MS = 15 * 60 * 1000;
 
-/** 24 horas desde las 18:00 del 23-11-2026 con una curva de temperatura sencilla. */
+/**
+ * 24 horas desde las 18:00 del 23-11-2026 con una curva de temperatura sencilla.
+ * De noche (hasta las 06:00) nublado; de día, soleado de 07:00 a 09:00, lluvia a las 10:00 y 11:00 y nublado después.
+ */
 export function buildHourly(): HourlyForecast[] {
   return Array.from({ length: 24 }, (_, index) => {
     const absoluteHour = 18 + index;
     const day = 23 + Math.floor(absoluteHour / 24);
     const hour = absoluteHour % 24;
+    const isDay = index >= 13;
+    const condition: Pick<HourlyForecast, 'weatherCode' | 'icon'> =
+      index >= 13 && index <= 15
+        ? { weatherCode: 0, icon: 'clear' }
+        : index === 16 || index === 17
+          ? { weatherCode: 61, icon: 'rain' }
+          : { weatherCode: 3, icon: 'cloudy' };
+
     return {
       time: `2026-11-${String(day)}T${String(hour).padStart(2, '0')}:00`,
       temperature: 9 - Math.abs(index - 8) / 2,
       precipitationProbability: index % 6 === 0 ? 20 : 0,
+      ...condition,
+      isDay,
     };
   });
 }
@@ -68,7 +81,12 @@ export function buildWeatherData(overrides: Partial<WeatherData> = {}): WeatherD
       icon: 'partly-cloudy',
       isDay: true,
     },
-    daily: { temperatureMax: 11.9, temperatureMin: 0.8 },
+    daily: {
+      temperatureMax: 11.9,
+      temperatureMin: 0.8,
+      sunrise: '2026-11-23T08:11',
+      sunset: '2026-11-23T17:49',
+    },
     forecast: buildForecast(),
     hourly: buildHourly(),
     updatedAt: '2026-11-23T10:45:00.000Z',

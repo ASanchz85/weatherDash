@@ -169,6 +169,7 @@ apps/
 - **Ciclo único de datos**: `useDashboardData` es el único dueño de la consulta. Pide a la vez el tiempo y la calidad del aire (y cada estado se publica en cuanto llega, con errores independientes), y repite el ciclo cuando el servidor indica que su caché caduca: `/api/weather` devuelve `nextRefreshInMs`, calculado en el servidor, y el frontend espera ese tiempo más 1 s. Así la cadencia sigue a `WEATHER_REFRESH_INTERVAL` sin desfases de reloj. Tras un fallo reintenta a los 30 s conservando los últimos datos. Los datos viven en `App`, fuera de las vistas rotatorias: **rotar nunca provoca una consulta**. No se usa `sessionStorage`: el backend ya guarda los datos en memoria y responde en milisegundos.
 - **Rotación de vistas**: un único temporizador (`useRotation`) avanza la página cada `UI_ROTATION_INTERVAL` (leído en `GET /api/config`, sin recompilar). Cada espacio muestra su vista de esa página; `RotatingView` funde la actual (0,35 s) y después la nueva (0,35 s), sin otras animaciones y sin fundido con `prefers-reduced-motion`.
 - **Tema día/noche**: la foto depende de `is_day`. El primer dato válido y la rotación desactivada se aplican al instante; un cambio posterior espera al siguiente ciclo de rotación, para que la foto y las vistas cambien a la vez. Solo cambia la foto: los colores se mantienen.
+- **Colores con significado**: el azul (`--color-rain`) se reserva para la lluvia y el naranja para el sol. Un icono es azul si la condición incluye lluvia (llovizna, lluvia, aguanieve, chubascos y tormenta, de día o de noche) y naranja si es cielo despejado o mayormente despejado de día (`weatherTone`). La predicción semanal colorea el icono y la probabilidad de lluvia (azul), y la máxima de los días soleados (naranja). La gráfica horaria dibuja las barras de lluvia en azul y resalta con una columna naranja las horas soleadas (por eso el backend envía `icon` e `isDay` por hora). El resalte sutil de «Hoy» y de la ficha de sensación comparte los tokens `--highlight-*`.
 - **Frontend resiliente**: un error meteorológico nunca afecta al reloj.
 - **Layout y resoluciones**: `App.module.css` usa una cuadrícula de dos filas (hero y card lateral arriba, franja inferior a ancho completo debajo) y apila todo en vertical. Las fotos usan `background-size: cover`: conservan su proporción y solo se recortan, sin deformarse. Todas las vistas de la franja inferior comparten la altura `--forecast-content-height` para que rotar no mueva el layout. Tras cualquier cambio de layout ejecuta `npm run screenshots` (ver [Regresión visual](#regresión-visual)).
 - **Sin CORS**: en desarrollo se usa el proxy de Vite; en producción todo se sirve desde el mismo origen.
@@ -212,7 +213,7 @@ Configuración de la interfaz, leída en tiempo de ejecución. Sin caché.
     "icon": "mostly-clear",
     "isDay": true
   },
-  "daily": { "temperatureMax": 12, "temperatureMin": 0.9 },
+  "daily": { "temperatureMax": 12, "temperatureMin": 0.9, "sunrise": "2026-11-23T08:13", "sunset": "2026-11-23T17:55" },
   "forecast": [
     {
       "date": "2026-11-23",
@@ -225,7 +226,7 @@ Configuración de la interfaz, leída en tiempo de ejecución. Sin caché.
     }
   ],
   "hourly": [
-    { "time": "2026-11-23T19:00", "temperature": 7.5, "precipitationProbability": 0 }
+    { "time": "2026-11-23T19:00", "temperature": 7.5, "precipitationProbability": 0, "weatherCode": 1, "icon": "mostly-clear", "isDay": true }
   ],
   "updatedAt": "2026-11-23T11:06:09.136Z",
   "stale": false,
@@ -235,7 +236,7 @@ Configuración de la interfaz, leída en tiempo de ejecución. Sin caché.
 
 `forecast` contiene 7 elementos (hoy + 6 días) y `hourly` 24 (desde la hora en curso); aquí se muestra solo el primero de cada uno. `date` es la fecha local de la localidad (`YYYY-MM-DD`), `time` la hora local (`YYYY-MM-DDTHH:mm`) y el primer elemento de `forecast` es siempre hoy. `daily` equivale a los extremos de `forecast[0]` y se mantiene por compatibilidad. `nextRefreshInMs` es el tiempo hasta el siguiente refresco (o reintento, si `stale` es `true`).
 
-`windDirection` son los grados de los que viene el viento (0 = norte). `windDirection`, `windGusts`, `pressure`, `cloudCover`, `precipitationProbability`, `temperatureMax`, `temperatureMin`, `precipitationProbabilityMax` y las temperaturas y probabilidades de `hourly` pueden ser `null` si Open-Meteo no los proporciona.
+`windDirection` son los grados de los que viene el viento (0 = norte). `windDirection`, `windGusts`, `pressure`, `cloudCover`, `precipitationProbability`, `temperatureMax`, `temperatureMin`, `precipitationProbabilityMax`, `sunrise`, `sunset` y las temperaturas y probabilidades de `hourly` pueden ser `null` si Open-Meteo no los proporciona.
 
 ### `GET /api/air-quality`
 
@@ -256,10 +257,10 @@ Todas las medidas pueden ser `null`. El polen llega a `0` fuera de temporada y a
 ## Integración con Open-Meteo
 
 - Geocoding: `https://geocoding-api.open-meteo.com/v1/search?name=…&countryCode=ES&language=es&count=1`.
-- Previsión: `https://api.open-meteo.com/v1/forecast` con `current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,cloud_cover,weather_code,is_day,precipitation_probability`, `daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max` y `hourly=temperature_2m,precipitation_probability`, con `forecast_days=7`, `forecast_hours=24` y viento en km/h.
+- Previsión: `https://api.open-meteo.com/v1/forecast` con `current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,cloud_cover,weather_code,is_day,precipitation_probability`, `daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset` y `hourly=temperature_2m,precipitation_probability,weather_code,is_day`, con `forecast_days=7`, `forecast_hours=24` y viento en km/h.
 - Calidad del aire: `https://air-quality-api.open-meteo.com/v1/air-quality` con `current=european_aqi,pm2_5,dust,uv_index,olive_pollen,grass_pollen`.
 - Todas las respuestas se validan con Zod; un formato inesperado se trata como un fallo del proveedor. Las medidas auxiliares (viento, presión, nubosidad y toda la calidad del aire) admiten `null` sin invalidar la respuesta.
-- Uso no comercial gratuito y sin API key. Con la caché de 15 minutos el dashboard realiza ~96 peticiones diarias de previsión (cada una cuenta como ~1,7 llamadas por tener 17 variables) y ~24 de calidad del aire (caché de 1 hora): unas 190 llamadas al día, muy por debajo del límite de 10.000.
+- Uso no comercial gratuito y sin API key. Con la caché de 15 minutos el dashboard realiza ~96 peticiones diarias de previsión (cada una cuenta como ~2,1 llamadas por tener 21 variables) y ~24 de calidad del aire (caché de 1 hora): unas 225 llamadas al día, muy por debajo del límite de 10.000.
 
 ## Modo kiosk (Fedora KDE Plasma)
 

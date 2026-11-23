@@ -48,6 +48,9 @@ export const forecastResponseSchema = z.object({
       temperature_2m_max: z.array(z.number().nullable()),
       temperature_2m_min: z.array(z.number().nullable()),
       precipitation_probability_max: z.array(z.number().min(0).max(100).nullable()),
+      // Sin salida o puesta de sol (latitudes polares) el valor no es una hora; se normaliza a null.
+      sunrise: z.array(z.string().nullable()),
+      sunset: z.array(z.string().nullable()),
     })
     .refine(
       ({ time, ...series }) => Object.values(series).every((values) => values.length === time.length),
@@ -58,6 +61,8 @@ export const forecastResponseSchema = z.object({
       time: z.array(z.string().regex(ISO_DATE_TIME_PATTERN)),
       temperature_2m: z.array(z.number().nullable()),
       precipitation_probability: z.array(z.number().min(0).max(100).nullable()),
+      weather_code: z.array(z.number().int().nonnegative()),
+      is_day: z.array(z.union([z.literal(0), z.literal(1)])),
     })
     .refine(
       ({ time, ...series }) => Object.values(series).every((values) => values.length === time.length),

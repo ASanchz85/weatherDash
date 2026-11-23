@@ -58,6 +58,32 @@ describe('HourlyForecast', () => {
     expect(bars[2]!.style.height).toBe('18%');
   });
 
+  it('resalta las horas soleadas, y solo esas, en cada columna', () => {
+    render(<HourlyForecast state={ready()} />);
+
+    const tones = screen.getAllByTestId('hourly-slot').map((slot) => slot.getAttribute('data-tone'));
+    expect(tones).toHaveLength(24);
+    expect(tones.filter((tone) => tone === 'sun')).toHaveLength(3);
+    expect(tones.slice(13, 16)).toEqual(['sun', 'sun', 'sun']);
+    expect(tones.filter((tone) => tone === 'rain')).toHaveLength(2);
+  });
+
+  it('no resalta como soleada una hora despejada de noche', () => {
+    const hourly = buildHourly().map((hour) => ({ ...hour, icon: 'clear' as const, isDay: false }));
+    render(<HourlyForecast state={ready({ hourly })} />);
+
+    const tones = screen.getAllByTestId('hourly-slot').map((slot) => slot.getAttribute('data-tone'));
+    expect(new Set(tones)).toEqual(new Set(['neutral']));
+  });
+
+  it('explica los colores en la leyenda', () => {
+    render(<HourlyForecast state={ready()} />);
+
+    expect(screen.getByText('Temperatura')).toBeInTheDocument();
+    expect(screen.getByText('Lluvia')).toBeInTheDocument();
+    expect(screen.getByText('Sol')).toBeInTheDocument();
+  });
+
   it('corta la línea en los huecos de datos', () => {
     const hourly = buildHourly().map((hour, index) => (index === 5 ? { ...hour, temperature: null } : hour));
     const { container } = render(<HourlyForecast state={ready({ hourly })} />);

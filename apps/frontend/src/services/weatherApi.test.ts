@@ -35,6 +35,18 @@ describe('parseWeatherData', () => {
     expect(parseWeatherData(JSON.parse(JSON.stringify(data)))).toEqual(data);
   });
 
+  it('acepta el amanecer y el atardecer nulos y rechaza horas con formato inesperado', () => {
+    const base = buildWeatherData();
+    const withoutSun = buildWeatherData({ daily: { ...base.daily, sunrise: null, sunset: null } });
+    expect(parseWeatherData(JSON.parse(JSON.stringify(withoutSun)))).toEqual(withoutSun);
+
+    expect(() =>
+      parseWeatherData({ ...base, daily: { ...base.daily, sunrise: '08:11' } }),
+    ).toThrow(WeatherApiError);
+    const { sunset: _omitted, ...dailyWithoutSunset } = base.daily;
+    expect(() => parseWeatherData({ ...base, daily: dailyWithoutSunset })).toThrow(WeatherApiError);
+  });
+
   it('rechaza una predicción diaria ausente o con formato inesperado', () => {
     const { forecast: _omitted, ...withoutForecast } = buildWeatherData();
     expect(() => parseWeatherData(withoutForecast)).toThrow(WeatherApiError);
@@ -85,6 +97,15 @@ describe('parseWeatherData', () => {
     ).toThrow(WeatherApiError);
     expect(() =>
       parseWeatherData({ ...buildWeatherData(), hourly: [{ ...first, temperature: '9' }, ...rest] }),
+    ).toThrow(WeatherApiError);
+    expect(() =>
+      parseWeatherData({ ...buildWeatherData(), hourly: [{ ...first, icon: 'tornado' }, ...rest] }),
+    ).toThrow(WeatherApiError);
+    expect(() =>
+      parseWeatherData({ ...buildWeatherData(), hourly: [{ ...first, isDay: 1 }, ...rest] }),
+    ).toThrow(WeatherApiError);
+    expect(() =>
+      parseWeatherData({ ...buildWeatherData(), hourly: [{ ...first, weatherCode: '0' }, ...rest] }),
     ).toThrow(WeatherApiError);
   });
 

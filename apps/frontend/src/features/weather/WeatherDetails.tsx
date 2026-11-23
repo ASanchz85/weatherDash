@@ -1,10 +1,20 @@
-import { ArrowDown, ArrowUp, Droplets, Thermometer, Umbrella, Wind } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Droplets,
+  Moon,
+  Sun,
+  Thermometer,
+  Umbrella,
+  Wind,
+} from 'lucide-react';
 
 import { Metric } from '../../components/Metric';
 import type { WeatherData } from '../../types/weather';
 import styles from './WeatherDetails.module.css';
 import { WeatherIcon } from './WeatherIcon';
 import {
+  formatLocalTime,
   formatPercentage,
   formatTemperature,
   formatUpdatedAt,
@@ -55,6 +65,16 @@ export function WeatherDetails({ data, refreshFailed }: WeatherDetailsProps) {
           <span className={styles.rangeItem}>
             <ArrowDown className={styles.rangeIcon} aria-hidden="true" />
             Mín {formatTemperature(daily.temperatureMin)}
+          </span>
+          <span className={styles.rangeItem}>
+            <Sun className={styles.sunIcon} aria-hidden="true" />
+            <span className={styles.srOnly}>Amanecer </span>
+            <time dateTime={daily.sunrise ?? undefined}>{formatLocalTime(daily.sunrise)}</time>
+          </span>
+          <span className={styles.rangeItem}>
+            <Moon className={styles.rangeIcon} aria-hidden="true" />
+            <span className={styles.srOnly}>Atardecer </span>
+            <time dateTime={daily.sunset ?? undefined}>{formatLocalTime(daily.sunset)}</time>
           </span>
         </p>
       </div>

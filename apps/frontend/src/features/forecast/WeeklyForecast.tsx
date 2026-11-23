@@ -3,6 +3,7 @@ import { Umbrella } from 'lucide-react';
 import type { DailyForecast } from '../../types/weather';
 import { WeatherIcon } from '../weather/WeatherIcon';
 import { formatPercentage, formatTemperature } from '../weather/weatherFormat';
+import { weatherTone } from '../weather/weatherTone';
 import type { WeatherState } from '../dashboard/useDashboardData';
 import styles from './WeeklyForecast.module.css';
 import { formatWeekdayShort } from './forecastFormat';
@@ -18,7 +19,10 @@ interface ForecastDayProps {
 
 function ForecastDay({ day, isToday }: ForecastDayProps) {
   return (
-    <li className={isToday ? `${styles.day} ${styles.today}` : styles.day}>
+    <li
+      className={isToday ? `${styles.day} ${styles.today}` : styles.day}
+      data-tone={weatherTone(day.icon, true)}
+    >
       <time className={styles.weekday} dateTime={day.date}>
         {isToday ? 'Hoy' : formatWeekdayShort(day.date)}
       </time>

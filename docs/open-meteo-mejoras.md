@@ -10,7 +10,7 @@ Estado de implementación: las ideas marcadas como **Implementado** ya están en
 
 | Endpoint | Variables | Uso |
 | --- | --- | --- |
-| `api.open-meteo.com/v1/forecast` | `current`: `temperature_2m`, `apparent_temperature`, `relative_humidity_2m`, `wind_speed_10m`, `wind_direction_10m`, `wind_gusts_10m`, `pressure_msl`, `cloud_cover`, `weather_code`, `is_day`, `precipitation_probability`; `daily`: `weather_code`, `temperature_2m_max`, `temperature_2m_min`, `precipitation_probability_max`; `hourly`: `temperature_2m`, `precipitation_probability`; `forecast_days=7`, `forecast_hours=24` | Card lateral (tiempo y viento), franja inferior (semana y horas) y tema día/noche |
+| `api.open-meteo.com/v1/forecast` | `current`: `temperature_2m`, `apparent_temperature`, `relative_humidity_2m`, `wind_speed_10m`, `wind_direction_10m`, `wind_gusts_10m`, `pressure_msl`, `cloud_cover`, `weather_code`, `is_day`, `precipitation_probability`; `daily`: `weather_code`, `temperature_2m_max`, `temperature_2m_min`, `precipitation_probability_max`, `sunrise`, `sunset`; `hourly`: `temperature_2m`, `precipitation_probability`, `weather_code`, `is_day`; `forecast_days=7`, `forecast_hours=24` | Card lateral (tiempo y viento), franja inferior (semana y horas) y tema día/noche |
 | `air-quality-api.open-meteo.com/v1/air-quality` | `current`: `european_aqi`, `pm2_5`, `dust`, `uv_index`, `olive_pollen`, `grass_pollen` | Vista «Viento y aire» |
 | `geocoding-api.open-meteo.com/v1/search` | `name`, `countryCode`, `language=es`, `count=1` | Resolver la localidad al arrancar |
 
@@ -29,8 +29,8 @@ No todas las peticiones cuentan como una llamada. Según la página de precios, 
 $$\text{coste} \approx \max\left(1, \frac{\text{variables}}{10}\right) \times \max\left(1, \frac{\text{días}}{14}\right)$$
 
 - Antes de la previsión semanal: 9 variables × 1 día → 1 llamada por consulta.
-- Hoy: 17 variables (11 actuales, 4 diarias y 2 horarias) × 7 días → ~1,7 llamadas por consulta de previsión, más 1 de calidad del aire (6 variables).
-- Con la caché de 15 minutos son 96 consultas de previsión al día (~163 llamadas) y ~24 de calidad del aire (caché de al menos 1 hora): unas 190 llamadas diarias en total. Cada endpoint nuevo consultado con ritmo de 15 minutos suma ~96 llamadas/día; con TTL mayores, menos. El uso queda muy por debajo de las 10.000 diarias.
+- Hoy: 21 variables (11 actuales, 6 diarias y 4 horarias) × 7 días → ~2,1 llamadas por consulta de previsión, más 1 de calidad del aire (6 variables).
+- Con la caché de 15 minutos son 96 consultas de previsión al día (~202 llamadas) y ~24 de calidad del aire (caché de al menos 1 hora): unas 225 llamadas diarias en total. Cada endpoint nuevo consultado con ritmo de 15 minutos suma ~96 llamadas/día; con TTL mayores, menos. El uso queda muy por debajo de las 10.000 diarias.
 - Atención al histórico: un rango de varios años cuenta como cientos de llamadas (ver 4.4); debe pedirse una vez al día como máximo y cachearse.
 
 ## 3. Mejoras con el mismo endpoint de previsión
@@ -61,7 +61,7 @@ Verificado: `pressure_msl` (1024,9 hPa), `wind_direction_10m` (90°), `cloud_cov
 
 ### 3.3 Datos horarios (`hourly=`) — Implementado
 
-La franja inferior alterna con una gráfica de las próximas 24 horas (línea de temperatura y barras de probabilidad de lluvia) en SVG propio, con `forecast_hours=24` y las variables `temperature_2m` y `precipitation_probability`. Quedan sin usar `precipitation`, `cloud_cover`, `pressure_msl` y `visibility` por hora.
+La franja inferior alterna con una gráfica de las próximas 24 horas (línea de temperatura y barras de probabilidad de lluvia) en SVG propio, con `forecast_hours=24` y las variables `temperature_2m`, `precipitation_probability`, `weather_code` e `is_day` (estas dos permiten resaltar las horas soleadas y de lluvia). Quedan sin usar `precipitation`, `cloud_cover`, `pressure_msl` y `visibility` por hora.
 
 - Gráfica de temperatura de las próximas 24 h y barras de probabilidad de lluvia, como las secciones "Today temperature" y "Rain chances" de la referencia visual ([weather_dash_example.webp](weather_dash_example.webp)). Variables: `temperature_2m`, `precipitation_probability`, `precipitation`.
 - Se limita el volumen con `forecast_hours=24` en lugar de `forecast_days`.

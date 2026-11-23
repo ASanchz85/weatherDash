@@ -30,6 +30,9 @@ export interface HourlyForecast {
   time: string;
   temperature: number | null;
   precipitationProbability: number | null;
+  weatherCode: number;
+  icon: WeatherIconName;
+  isDay: boolean;
 }
 
 export interface WeatherData {
@@ -57,6 +60,9 @@ export interface WeatherData {
   daily: {
     temperatureMax: number | null;
     temperatureMin: number | null;
+    /** Hora local de hoy (YYYY-MM-DDTHH:mm). */
+    sunrise: string | null;
+    sunset: string | null;
   };
   forecast: DailyForecast[];
   /** Próximas horas, empezando por la hora en curso. */
