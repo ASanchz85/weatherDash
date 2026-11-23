@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { forecastResponse, geocodingResponse, jsonResponse, navaluenga } from '../../test/fixtures.js';
+import {
+  buildForecast,
+  forecastResponse,
+  geocodingResponse,
+  jsonResponse,
+  navaluenga,
+} from '../../test/fixtures.js';
 import { createOpenMeteoProvider, normalizeForecast, WeatherProviderError } from './weather.provider.js';
 import { forecastResponseSchema } from './weather.schema.js';
 
@@ -24,6 +30,7 @@ describe('normalizeForecast', () => {
         isDay: true,
       },
       daily: { temperatureMax: 11.9, temperatureMin: 0.8 },
+      forecast: buildForecast(),
     });
   });
 
@@ -31,13 +38,35 @@ describe('normalizeForecast', () => {
     const snapshot = normalizeForecast(
       {
         current: { ...forecastResponse.current, precipitation_probability: null, is_day: 0 },
-        daily: { temperature_2m_max: [null], temperature_2m_min: [null] },
+        daily: {
+          time: ['2026-11-23'],
+          weather_code: [2],
+          temperature_2m_max: [null],
+          temperature_2m_min: [null],
+          precipitation_probability_max: [null],
+        },
       },
       navaluenga,
     );
     expect(snapshot.current.precipitationProbability).toBeNull();
     expect(snapshot.current.isDay).toBe(false);
     expect(snapshot.daily).toEqual({ temperatureMax: null, temperatureMin: null });
+    expect(snapshot.forecast).toEqual([
+      {
+        date: '2026-11-23',
+        weatherCode: 2,
+        description: 'Parcialmente nuboso',
+        icon: 'partly-cloudy',
+        temperatureMax: null,
+        temperatureMin: null,
+        precipitationProbabilityMax: null,
+      },
+    ]);
+  });
+
+  it('interpreta cada día con su propio código meteorológico', () => {
+    const { forecast } = normalizeForecast(forecastResponse, navaluenga);
+    expect(forecast.map(({ icon }) => icon)).toEqual(['partly-cloudy', 'rain', 'cloudy']);
   });
 });
 
@@ -58,6 +87,24 @@ describe('forecastResponseSchema', () => {
       }).success,
     ).toBe(false);
   });
+
+  it('rechaza series diarias de distinta longitud', () => {
+    expect(
+      forecastResponseSchema.safeParse({
+        ...forecastResponse,
+        daily: { ...forecastResponse.daily, weather_code: [2] },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rechaza fechas diarias con formato no ISO', () => {
+    expect(
+      forecastResponseSchema.safeParse({
+        ...forecastResponse,
+        daily: { ...forecastResponse.daily, time: ['23/11/2026', '24/11/2026', '25/11/2026'] },
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe('createOpenMeteoProvider', () => {
@@ -70,7 +117,12 @@ describe('createOpenMeteoProvider', () => {
     expect(url.searchParams.get('latitude')).toBe('40.41123');
     expect(url.searchParams.get('timezone')).toBe('Europe/Madrid');
     expect(url.searchParams.get('current')).toContain('precipitation_probability');
+    expect(url.searchParams.get('forecast_days')).toBe('7');
+    expect(url.searchParams.get('daily')).toBe(
+      'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+    );
     expect(snapshot.current.description).toBe('Parcialmente nuboso');
+    expect(snapshot.forecast).toHaveLength(3);
   });
 
   it('obtiene el primer resultado del geocoding', async () => {

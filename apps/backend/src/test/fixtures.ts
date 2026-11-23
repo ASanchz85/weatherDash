@@ -1,6 +1,10 @@
 import type { WeatherConfig } from '../config/env.js';
 import type { ForecastResponse } from '../modules/weather/weather.schema.js';
-import type { ResolvedLocation, WeatherSnapshot } from '../modules/weather/weather.types.js';
+import type {
+  DailyForecast,
+  ResolvedLocation,
+  WeatherSnapshot,
+} from '../modules/weather/weather.types.js';
 
 export const weatherConfig: WeatherConfig = {
   locationName: 'Navaluenga',
@@ -32,8 +36,11 @@ export const forecastResponse: ForecastResponse = {
     precipitation_probability: 10,
   },
   daily: {
-    temperature_2m_max: [11.9],
-    temperature_2m_min: [0.8],
+    time: ['2026-11-23', '2026-11-24', '2026-11-25'],
+    weather_code: [2, 61, 3],
+    temperature_2m_max: [11.9, 10.4, 9.6],
+    temperature_2m_min: [0.8, 2.6, 4.6],
+    precipitation_probability_max: [0, 65, 25],
   },
 };
 
@@ -64,7 +71,40 @@ export function buildSnapshot(temperature = 8.4): WeatherSnapshot {
       isDay: true,
     },
     daily: { temperatureMax: 11.9, temperatureMin: 0.8 },
+    forecast: buildForecast(),
   };
+}
+
+export function buildForecast(): DailyForecast[] {
+  return [
+    {
+      date: '2026-11-23',
+      weatherCode: 2,
+      description: 'Parcialmente nuboso',
+      icon: 'partly-cloudy',
+      temperatureMax: 11.9,
+      temperatureMin: 0.8,
+      precipitationProbabilityMax: 0,
+    },
+    {
+      date: '2026-11-24',
+      weatherCode: 61,
+      description: 'Lluvia ligera',
+      icon: 'rain',
+      temperatureMax: 10.4,
+      temperatureMin: 2.6,
+      precipitationProbabilityMax: 65,
+    },
+    {
+      date: '2026-11-25',
+      weatherCode: 3,
+      description: 'Cubierto',
+      icon: 'cloudy',
+      temperatureMax: 9.6,
+      temperatureMin: 4.6,
+      precipitationProbabilityMax: 25,
+    },
+  ];
 }
 
 export function jsonResponse(body: unknown, status = 200): Response {
