@@ -27,7 +27,7 @@ export interface FormattedDate {
   fullDate: string;
 }
 
-function capitalize(text: string): string {
+export function capitalize(text: string): string {
   return text.charAt(0).toLocaleUpperCase(LOCALE) + text.slice(1);
 }
 

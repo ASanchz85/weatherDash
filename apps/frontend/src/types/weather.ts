@@ -14,6 +14,17 @@ export type WeatherIconName =
   | 'thunderstorm'
   | 'unknown';
 
+export interface DailyForecast {
+  /** Fecha local de la localidad (YYYY-MM-DD); el primer elemento es hoy. */
+  date: string;
+  weatherCode: number;
+  description: string;
+  icon: WeatherIconName;
+  temperatureMax: number | null;
+  temperatureMin: number | null;
+  precipitationProbabilityMax: number | null;
+}
+
 export interface WeatherData {
   location: {
     name: string;
@@ -34,6 +45,7 @@ export interface WeatherData {
     temperatureMax: number | null;
     temperatureMin: number | null;
   };
+  forecast: DailyForecast[];
   updatedAt: string;
   stale: boolean;
 }

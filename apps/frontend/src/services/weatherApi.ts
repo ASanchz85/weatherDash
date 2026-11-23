@@ -1,5 +1,5 @@
 import { WEATHER_ENDPOINT } from '../config';
-import type { WeatherData, WeatherIconName } from '../types/weather';
+import type { DailyForecast, WeatherData, WeatherIconName } from '../types/weather';
 
 export class WeatherApiError extends Error {
   override readonly name = 'WeatherApiError';
@@ -38,10 +38,38 @@ function isIconName(value: unknown): value is WeatherIconName {
   return typeof value === 'string' && ICON_NAMES.has(value);
 }
 
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseDailyForecast(value: unknown): DailyForecast {
+  if (
+    !isRecord(value) ||
+    typeof value.date !== 'string' ||
+    !ISO_DATE_PATTERN.test(value.date) ||
+    !isNumber(value.weatherCode) ||
+    typeof value.description !== 'string' ||
+    !isIconName(value.icon) ||
+    !isNullableNumber(value.temperatureMax) ||
+    !isNullableNumber(value.temperatureMin) ||
+    !isNullableNumber(value.precipitationProbabilityMax)
+  ) {
+    throw new WeatherApiError('Predicción diaria con formato inesperado');
+  }
+
+  return {
+    date: value.date,
+    weatherCode: value.weatherCode,
+    description: value.description,
+    icon: value.icon,
+    temperatureMax: value.temperatureMax,
+    temperatureMin: value.temperatureMin,
+    precipitationProbabilityMax: value.precipitationProbabilityMax,
+  };
+}
+
 /** Valida en tiempo de ejecución la respuesta de la API local antes de usarla en la interfaz. */
 export function parseWeatherData(value: unknown): WeatherData {
   if (!isRecord(value)) throw new WeatherApiError('Respuesta meteorológica no válida');
-  const { location, current, daily, updatedAt, stale } = value;
+  const { location, current, daily, forecast, updatedAt, stale } = value;
 
   if (
     !isRecord(location) ||
@@ -60,6 +88,7 @@ export function parseWeatherData(value: unknown): WeatherData {
     !isRecord(daily) ||
     !isNullableNumber(daily.temperatureMax) ||
     !isNullableNumber(daily.temperatureMin) ||
+    !Array.isArray(forecast) ||
     typeof updatedAt !== 'string' ||
     Number.isNaN(Date.parse(updatedAt)) ||
     typeof stale !== 'boolean'
@@ -81,6 +110,7 @@ export function parseWeatherData(value: unknown): WeatherData {
       isDay: current.isDay,
     },
     daily: { temperatureMax: daily.temperatureMax, temperatureMin: daily.temperatureMin },
+    forecast: forecast.map(parseDailyForecast),
     updatedAt,
     stale,
   };

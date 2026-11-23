@@ -23,6 +23,33 @@ describe('parseWeatherData', () => {
       }),
     ).toThrow(WeatherApiError);
   });
+
+  it('acepta valores nulos en la predicción diaria', () => {
+    const [first, ...rest] = buildWeatherData().forecast;
+    const data = buildWeatherData({
+      forecast: [
+        { ...first!, temperatureMax: null, temperatureMin: null, precipitationProbabilityMax: null },
+        ...rest,
+      ],
+    });
+    expect(parseWeatherData(JSON.parse(JSON.stringify(data)))).toEqual(data);
+  });
+
+  it('rechaza una predicción diaria ausente o con formato inesperado', () => {
+    const { forecast: _omitted, ...withoutForecast } = buildWeatherData();
+    expect(() => parseWeatherData(withoutForecast)).toThrow(WeatherApiError);
+
+    const [first, ...rest] = buildWeatherData().forecast;
+    expect(() =>
+      parseWeatherData({ ...buildWeatherData(), forecast: [{ ...first, date: '23/11/2026' }, ...rest] }),
+    ).toThrow(WeatherApiError);
+    expect(() =>
+      parseWeatherData({ ...buildWeatherData(), forecast: [{ ...first, icon: 'tornado' }, ...rest] }),
+    ).toThrow(WeatherApiError);
+    expect(() =>
+      parseWeatherData({ ...buildWeatherData(), forecast: [{ ...first, temperatureMax: '12' }, ...rest] }),
+    ).toThrow(WeatherApiError);
+  });
 });
 
 describe('fetchWeather', () => {
