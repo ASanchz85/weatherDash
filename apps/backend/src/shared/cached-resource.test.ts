@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { createCachedResource, RETRY_AFTER_FAILURE_MS } from './cached-resource.js';
+import type { StoredSnapshot } from './snapshot-store.js';
 
 const TTL_MS = 15 * 60 * 1000;
 
@@ -95,5 +96,81 @@ describe('createCachedResource', () => {
     const resource = createCachedResource({ load: vi.fn().mockRejectedValue(failure), ttlMs: TTL_MS });
 
     await expect(resource.get()).rejects.toBe(failure);
+  });
+});
+
+function createMemoryStore<T>(initial: StoredSnapshot<T> | null = null) {
+  let saved = initial;
+  return {
+    load: vi.fn(() => saved),
+    save: vi.fn((snapshot: StoredSnapshot<T>) => {
+      saved = snapshot;
+    }),
+  };
+}
+
+describe('createCachedResource con almacén persistente', () => {
+  it('guarda cada dato nuevo obtenido del proveedor', async () => {
+    const clock = createClock();
+    const store = createMemoryStore<string>();
+    const load = vi.fn().mockResolvedValue('dato');
+    const resource = createCachedResource({ load, ttlMs: TTL_MS, now: clock.now, store });
+
+    await resource.get();
+
+    expect(store.save).toHaveBeenCalledWith({ value: 'dato', fetchedAt: clock.now() });
+  });
+
+  it('sirve el dato persistido sin consultar al proveedor si sigue vigente', async () => {
+    const clock = createClock();
+    const store = createMemoryStore({ value: 'persistido', fetchedAt: clock.now() - 1000 });
+    const load = vi.fn();
+    const resource = createCachedResource({ load, ttlMs: TTL_MS, now: clock.now, store });
+
+    expect(await resource.get()).toMatchObject({
+      value: 'persistido',
+      stale: false,
+      nextRefreshInMs: TTL_MS - 1000,
+    });
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it('sirve el dato persistido como desactualizado si caducó y el proveedor falla', async () => {
+    const clock = createClock();
+    const fetchedAt = clock.now() - 2 * TTL_MS;
+    const store = createMemoryStore({ value: 'persistido', fetchedAt });
+    const resource = createCachedResource({
+      load: vi.fn().mockRejectedValue(new Error('sin red')),
+      ttlMs: TTL_MS,
+      now: clock.now,
+      store,
+    });
+
+    expect(await resource.get()).toEqual({
+      value: 'persistido',
+      fetchedAt,
+      stale: true,
+      nextRefreshInMs: RETRY_AFTER_FAILURE_MS,
+    });
+    expect(store.save).not.toHaveBeenCalled();
+  });
+
+  it('sigue funcionando en memoria si el almacén falla', async () => {
+    const onStoreFailure = vi.fn();
+    const failure = new Error('disco lleno');
+    const store = {
+      load: () => {
+        throw failure;
+      },
+      save: () => {
+        throw failure;
+      },
+    };
+    const load = vi.fn().mockResolvedValue('dato');
+    const resource = createCachedResource({ load, ttlMs: TTL_MS, store, onStoreFailure });
+
+    expect(await resource.get()).toMatchObject({ value: 'dato', stale: false });
+    expect(onStoreFailure).toHaveBeenCalledTimes(2);
+    expect(onStoreFailure).toHaveBeenCalledWith(failure);
   });
 });

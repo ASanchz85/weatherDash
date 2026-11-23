@@ -20,7 +20,7 @@
 - **Foto nocturna de poca resolución**: `navaluenga_noche.webp` mide 680×385 (el original tenía una marca de agua, recortada en el propio fichero) y se amplía ~1,8 veces en 1920×1080, por lo que se ve más suave que la de día. Se recorta más que la de día (~10 % frente a ~5 % en horizontal) y bastante en vertical (1080×1920: 40-46 %).
 - **Vertical**: en 1080×1920 las fotos se recortan mucho (≥30 %) y el hero cambia de alto según la vista de la card lateral. Es solo un aviso en el script de capturas, no un error.
 - **Animación**: solo hay fundidos al cambiar de vista o de tema (0,7 s en total). Con `prefers-reduced-motion` los cambios son instantáneos.
-- **Sin persistencia en el navegador**: los datos no se guardan en `sessionStorage` ni `localStorage`. El backend los mantiene en memoria y responde en milisegundos; guardar otra copia en el navegador no acelera nada y obligaría a versionar y caducar el contrato. Si se quisiera, la variante mínima sería guardar el último dato con su hora y una versión, validarlo con los parsers existentes y usarlo solo como estado inicial mientras llega la primera respuesta.
+- **Sin persistencia en el navegador**: los datos no se guardan en `sessionStorage` ni `localStorage`. La persistencia es responsabilidad exclusiva del backend, que conserva la última información en memoria y en SQLite y la sirve aunque falle Open-Meteo, no haya red o se reinicie la máquina. Guardar otra copia en el navegador no aportaría nada y obligaría a versionar y caducar el contrato en dos sitios.
 
 ## Técnicas
 

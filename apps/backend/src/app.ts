@@ -4,19 +4,24 @@ import type { UiConfig, WeatherConfig } from './config/env.js';
 import type { AirQualityProvider } from './modules/air-quality/air-quality.provider.js';
 import { airQualityRoutes } from './modules/air-quality/air-quality.routes.js';
 import { createAirQualityService } from './modules/air-quality/air-quality.service.js';
+import type { AirQualitySnapshot } from './modules/air-quality/air-quality.types.js';
 import { healthRoutes } from './modules/health/health.routes.js';
 import { createLocationService } from './modules/location/location.service.js';
 import { uiRoutes } from './modules/ui/ui.routes.js';
 import type { WeatherProvider } from './modules/weather/weather.provider.js';
 import { weatherRoutes } from './modules/weather/weather.routes.js';
 import { createWeatherService } from './modules/weather/weather.service.js';
+import type { WeatherSnapshot } from './modules/weather/weather.types.js';
 import { staticFrontend } from './plugins/static.js';
+import type { SnapshotStorage } from './shared/snapshot-store.js';
 
 export interface BuildAppOptions {
   weatherConfig: WeatherConfig;
   uiConfig: UiConfig;
   weatherProvider: WeatherProvider;
   airQualityProvider: AirQualityProvider;
+  /** Persistencia de la última información obtenida; sin ella, los datos solo viven en memoria. */
+  snapshotStorage?: SnapshotStorage;
   /** Directorio del frontend compilado; null para no servir estáticos (desarrollo y tests). */
   staticDir: string | null;
   /** Lanza la primera consulta de datos al arrancar, sin bloquear el arranque. */
@@ -30,6 +35,7 @@ export async function buildApp({
   uiConfig,
   weatherProvider,
   airQualityProvider,
+  snapshotStorage,
   staticDir,
   prefetchWeather = false,
   logger = false,
@@ -47,6 +53,7 @@ export async function buildApp({
     config: weatherConfig,
     provider: weatherProvider,
     locationService,
+    store: snapshotStorage?.storeFor<WeatherSnapshot>('weather'),
     logger: app.log,
     ...clock,
   });
@@ -54,6 +61,7 @@ export async function buildApp({
     provider: airQualityProvider,
     locationService,
     refreshIntervalMs: weatherConfig.refreshIntervalMs,
+    store: snapshotStorage?.storeFor<AirQualitySnapshot>('air-quality'),
     logger: app.log,
     ...clock,
   });
