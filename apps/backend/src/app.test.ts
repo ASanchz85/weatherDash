@@ -1,15 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { buildApp } from './app.js';
+import { buildApp, type BuildAppOptions } from './app.js';
+import { IN_MEMORY_DATABASE, openDatabase } from './database/database.js';
+import { createSqliteSnapshotStorage } from './database/sqlite-snapshot-storage.js';
 import type { AirQualityProvider } from './modules/air-quality/air-quality.provider.js';
 import type { WeatherProvider } from './modules/weather/weather.provider.js';
 import { buildAirQuality, buildSnapshot, weatherConfig } from './test/fixtures.js';
 
 const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 
+const NOW = Date.UTC(2026, 10, 23, 10);
+
 async function createTestApp(
   fetchForecast: WeatherProvider['fetchForecast'],
   fetchAirQuality: AirQualityProvider['fetchAirQuality'] = vi.fn().mockResolvedValue(buildAirQuality()),
+  { snapshotStorage, now = NOW }: Pick<BuildAppOptions, 'snapshotStorage'> & { now?: number } = {},
 ) {
   const app = await buildApp({
     weatherConfig: { ...weatherConfig, coordinates: { latitude: 40.41, longitude: -4.71 } },
@@ -17,7 +22,8 @@ async function createTestApp(
     weatherProvider: { geocode: vi.fn(), fetchForecast },
     airQualityProvider: { fetchAirQuality },
     staticDir: null,
-    now: () => Date.UTC(2026, 10, 23, 10),
+    ...(snapshotStorage && { snapshotStorage }),
+    now: () => now,
   });
   apps.push(app);
   return app;
@@ -92,5 +98,40 @@ describe('API REST', () => {
 
     const weather = await app.inject({ method: 'GET', url: '/api/weather' });
     expect(weather.statusCode).toBe(200);
+  });
+
+  it('tras reiniciar sin red sirve la última información persistida como desactualizada', async () => {
+    const database = openDatabase(IN_MEMORY_DATABASE);
+    const snapshotStorage = createSqliteSnapshotStorage(database);
+    const online = await createTestApp(
+      vi.fn().mockResolvedValue(buildSnapshot()),
+      vi.fn().mockResolvedValue(buildAirQuality()),
+      { snapshotStorage },
+    );
+    await online.inject({ method: 'GET', url: '/api/weather' });
+    await online.inject({ method: 'GET', url: '/api/air-quality' });
+    await online.close();
+
+    const offline = await createTestApp(
+      vi.fn().mockRejectedValue(new Error('sin red')),
+      vi.fn().mockRejectedValue(new Error('sin red')),
+      { snapshotStorage, now: NOW + 2 * 60 * 60 * 1000 },
+    );
+    const weather = await offline.inject({ method: 'GET', url: '/api/weather' });
+    const airQuality = await offline.inject({ method: 'GET', url: '/api/air-quality' });
+    database.close();
+
+    expect(weather.statusCode).toBe(200);
+    expect(weather.json()).toMatchObject({
+      ...buildSnapshot(),
+      updatedAt: '2026-11-23T10:00:00.000Z',
+      stale: true,
+    });
+    expect(airQuality.statusCode).toBe(200);
+    expect(airQuality.json()).toMatchObject({
+      ...buildAirQuality(),
+      updatedAt: '2026-11-23T10:00:00.000Z',
+      stale: true,
+    });
   });
 });

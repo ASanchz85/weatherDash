@@ -1,6 +1,9 @@
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import { ConfigError, loadConfig } from './env.js';
+import { DEFAULT_DATABASE_PATH, ROOT_PATH } from './paths.js';
 
 describe('loadConfig', () => {
   it('aplica valores por defecto razonables', () => {
@@ -33,6 +36,15 @@ describe('loadConfig', () => {
 
     expect(config.weather.coordinates).toEqual({ latitude: 40.65, longitude: -4.7 });
     expect(config.weather.timezone).toBeNull();
+  });
+
+  it('ubica la base de datos en data/ por defecto y resuelve rutas relativas desde la raíz', () => {
+    expect(loadConfig({}).databasePath).toBe(DEFAULT_DATABASE_PATH);
+    expect(loadConfig({ DATABASE_PATH: '' }).databasePath).toBe(DEFAULT_DATABASE_PATH);
+    expect(loadConfig({ DATABASE_PATH: 'otra/db.sqlite' }).databasePath).toBe(
+      join(ROOT_PATH, 'otra/db.sqlite'),
+    );
+    expect(loadConfig({ DATABASE_PATH: '/var/lib/wd.db' }).databasePath).toBe('/var/lib/wd.db');
   });
 
   it('sirve el frontend compilado solo en producción', () => {

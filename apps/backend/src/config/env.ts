@@ -1,6 +1,8 @@
+import { resolve } from 'node:path';
+
 import { z } from 'zod';
 
-import { FRONTEND_DIST_PATH } from './paths.js';
+import { DEFAULT_DATABASE_PATH, FRONTEND_DIST_PATH, ROOT_PATH } from './paths.js';
 
 const DEFAULT_PORT = 3000;
 const DEFAULT_LOCATION_NAME = 'Navaluenga';
@@ -30,6 +32,7 @@ const envSchema = z
     ),
     PORT: z.preprocess(blankToUndefined, z.coerce.number().int().min(1).max(65535).default(DEFAULT_PORT)),
     HOST: z.preprocess(blankToUndefined, z.string().default('0.0.0.0')),
+    DATABASE_PATH: optionalText,
     WEATHER_LOCATION_NAME: optionalText,
     WEATHER_FALLBACK_LOCATION_NAME: optionalText,
     WEATHER_COUNTRY: optionalText,
@@ -92,6 +95,8 @@ export interface AppConfig {
   port: number;
   /** Directorio del frontend compilado; solo se sirve en producción. */
   staticDir: string | null;
+  /** Ruta absoluta del fichero SQLite donde se conserva la última información obtenida. */
+  databasePath: string;
   weather: WeatherConfig;
   ui: UiConfig;
 }
@@ -120,6 +125,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     host: parsed.HOST,
     port: parsed.PORT,
     staticDir: parsed.NODE_ENV === 'production' ? FRONTEND_DIST_PATH : null,
+    // Las rutas relativas se resuelven desde la raíz del repositorio, igual que el .env.
+    databasePath: parsed.DATABASE_PATH ? resolve(ROOT_PATH, parsed.DATABASE_PATH) : DEFAULT_DATABASE_PATH,
     weather: {
       locationName: parsed.WEATHER_LOCATION_NAME ?? DEFAULT_LOCATION_NAME,
       fallbackLocationName: parsed.WEATHER_FALLBACK_LOCATION_NAME ?? DEFAULT_FALLBACK_LOCATION_NAME,
