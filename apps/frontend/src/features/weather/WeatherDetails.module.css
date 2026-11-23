@@ -1,0 +1,143 @@
+.details {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(12px, 2.2vmin, 28px);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.location {
+  font-size: clamp(1.2rem, 8cqi, 2rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.country {
+  margin-top: 4px;
+  font-size: clamp(0.8rem, 4cqi, 1rem);
+  color: var(--color-text-muted);
+}
+
+.badge {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2.4vmin, 28px);
+}
+
+.now {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 5cqi, 28px);
+}
+
+.conditionIcon {
+  flex-shrink: 0;
+  width: clamp(64px, 28cqi, 140px);
+  height: clamp(64px, 28cqi, 140px);
+  color: var(--color-text);
+}
+
+.conditionIcon[data-tone='warm'] {
+  color: var(--color-accent);
+}
+
+.temperature {
+  font-size: clamp(3rem, 22cqi, 6.5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.unit {
+  font-size: 0.4em;
+  font-weight: 400;
+  letter-spacing: 0;
+  vertical-align: 0.95em;
+  color: var(--color-text-muted);
+}
+
+.description {
+  margin-top: 6px;
+  font-size: clamp(0.95rem, 5cqi, 1.35rem);
+  color: var(--color-text-muted);
+}
+
+.range {
+  display: flex;
+  gap: 24px;
+  font-size: clamp(0.9rem, 4.5cqi, 1.2rem);
+}
+
+.rangeItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rangeIcon {
+  width: 1em;
+  height: 1em;
+  color: var(--color-text-muted);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(8px, 2.5cqi, 16px);
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: clamp(12px, 4cqi, 20px);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+}
+
+.metricHighlighted {
+  background: var(--color-accent);
+}
+
+.metricLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: clamp(0.72rem, 3.4cqi, 0.9rem);
+  color: var(--color-text-muted);
+}
+
+.metricHighlighted .metricLabel {
+  color: rgb(255 255 255 / 0.85);
+}
+
+.metricIcon {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.metricValue {
+  font-size: clamp(1.1rem, 6.5cqi, 1.8rem);
+  font-weight: 700;
+}
+
+.footer {
+  font-size: 0.8rem;
+  color: var(--color-text-faint);
+}

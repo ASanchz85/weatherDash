@@ -1,0 +1,40 @@
+import { describe, expect, it } from 'vitest';
+
+import { ConfigError, loadConfig } from './env.js';
+
+describe('loadConfig', () => {
+  it('aplica valores por defecto razonables', () => {
+    const config = loadConfig({});
+
+    expect(config.port).toBe(3000);
+    expect(config.staticDir).toBeNull();
+    expect(config.weather).toMatchObject({
+      locationName: 'Navaluenga',
+      fallbackLocationName: 'Ávila',
+      countryCode: 'ES',
+      coordinates: null,
+      refreshIntervalMs: 900000,
+    });
+  });
+
+  it('interpreta coordenadas explícitas y trata las variables vacías como no definidas', () => {
+    const config = loadConfig({
+      WEATHER_LATITUDE: '40.65',
+      WEATHER_LONGITUDE: '-4.70',
+      WEATHER_TIMEZONE: '',
+    });
+
+    expect(config.weather.coordinates).toEqual({ latitude: 40.65, longitude: -4.7 });
+    expect(config.weather.timezone).toBeNull();
+  });
+
+  it('sirve el frontend compilado solo en producción', () => {
+    expect(loadConfig({ NODE_ENV: 'production' }).staticDir).toMatch(/frontend[\\/]dist$/);
+  });
+
+  it('rechaza configuraciones no válidas', () => {
+    expect(() => loadConfig({ WEATHER_LATITUDE: '40.65' })).toThrow(ConfigError);
+    expect(() => loadConfig({ PORT: 'abc' })).toThrow(ConfigError);
+    expect(() => loadConfig({ WEATHER_REFRESH_INTERVAL: '1000' })).toThrow(ConfigError);
+  });
+});

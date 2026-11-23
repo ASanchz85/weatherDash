@@ -1,0 +1,19 @@
+.dashboard {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 2.1fr) minmax(320px, 1fr);
+  gap: var(--space-gap);
+  padding: var(--space-page);
+  overflow: hidden;
+}
+
+/* En vertical se apilan los paneles y se permite desplazamiento si el contenido no cabe */
+@media (orientation: portrait) {
+  .dashboard {
+    height: auto;
+    min-height: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(38vh, 1fr) auto;
+    overflow: visible;
+  }
+}

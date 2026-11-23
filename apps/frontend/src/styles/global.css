@@ -1,0 +1,76 @@
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../../assets/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../../assets/fonts/JetBrainsMono-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Paleta derivada de la referencia: slate azulado oscuro con acento naranja cálido */
+  --color-bg-top: #2a3345;
+  --color-bg-bottom: #161b26;
+  --color-surface: #252d3d;
+  --color-surface-raised: #2f384a;
+  --color-border-subtle: rgb(255 255 255 / 0.06);
+  --color-text: #f2f4f8;
+  --color-text-muted: #9aa3b4;
+  --color-text-faint: #6f7a8d;
+  --color-accent: #f2803a;
+  --color-accent-soft: rgb(242 128 58 / 0.16);
+  --color-warning: #f0c35a;
+  --color-warning-soft: rgb(240 195 90 / 0.14);
+  --color-danger: #f17575;
+  --color-danger-soft: rgb(241 117 117 / 0.14);
+
+  --font-family: 'JetBrains Mono', ui-monospace, 'DejaVu Sans Mono', monospace;
+
+  --radius-lg: 28px;
+  --radius-md: 20px;
+  --radius-sm: 14px;
+  --radius-pill: 999px;
+
+  --space-page: clamp(16px, 2.4vmin, 40px);
+  --space-gap: clamp(12px, 2vmin, 32px);
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: linear-gradient(160deg, var(--color-bg-top) 0%, var(--color-bg-bottom) 100%) fixed;
+  background-color: var(--color-bg-bottom);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3,
+p,
+dl,
+dd {
+  margin: 0;
+}

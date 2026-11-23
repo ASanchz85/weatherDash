@@ -1,0 +1,27 @@
+.message {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.messageIcon {
+  width: 48px;
+  height: 48px;
+  color: var(--color-text-faint);
+}
+
+.messageTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.messageDetail {
+  font-size: 0.85rem;
+  color: var(--color-text-faint);
+}
