@@ -1,5 +1,6 @@
-import { ArrowDown, ArrowUp, Droplets, Thermometer, Umbrella, Wind, type LucideIcon } from 'lucide-react';
+import { ArrowDown, ArrowUp, Droplets, Thermometer, Umbrella, Wind } from 'lucide-react';
 
+import { Metric } from '../../components/Metric';
 import type { WeatherData } from '../../types/weather';
 import styles from './WeatherDetails.module.css';
 import { WeatherIcon } from './WeatherIcon';
@@ -9,40 +10,16 @@ import {
   formatUpdatedAt,
   formatWindSpeed,
 } from './weatherFormat';
+import { weatherStatus } from './weatherStatus';
 
 interface WeatherDetailsProps {
   data: WeatherData;
   refreshFailed: boolean;
 }
 
-interface MetricProps {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-  highlighted?: boolean;
-}
-
-function Metric({ icon: Icon, label, value, highlighted = false }: MetricProps) {
-  return (
-    <div className={highlighted ? `${styles.metric} ${styles.metricHighlighted}` : styles.metric}>
-      <dt className={styles.metricLabel}>
-        <Icon className={styles.metricIcon} strokeWidth={1.75} aria-hidden="true" />
-        {label}
-      </dt>
-      <dd className={styles.metricValue}>{value}</dd>
-    </div>
-  );
-}
-
-function statusMessage(data: WeatherData, refreshFailed: boolean): string | null {
-  if (refreshFailed) return 'Sin conexión con el servidor';
-  if (data.stale) return 'Datos desactualizados';
-  return null;
-}
-
 export function WeatherDetails({ data, refreshFailed }: WeatherDetailsProps) {
   const { location, current, daily } = data;
-  const status = statusMessage(data, refreshFailed);
+  const status = weatherStatus(data, refreshFailed);
 
   return (
     <article className={styles.details}>

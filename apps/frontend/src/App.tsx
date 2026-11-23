@@ -13,16 +13,18 @@ import { useRotation } from './features/rotation/useRotation';
 import { useRotationInterval } from './features/rotation/useRotationInterval';
 import { useCommittedTheme } from './features/theme/useCommittedTheme';
 import { WeatherPanel } from './features/weather/WeatherPanel';
+import { WindAirPanel } from './features/wind-air/WindAirPanel';
 import { themeFromIsDay } from './types/theme';
 
 export function App() {
   // Los datos se piden aquí, fuera de las vistas rotatorias, para que rotar nunca provoque una consulta.
-  const { weather } = useDashboardData();
+  const { weather, airQuality } = useDashboardData();
   const rotationIntervalMs = useRotationInterval();
   const [overrides] = useState(() => parseDebugOverrides(window.location.search));
 
   const sideViews: RotatingViewItem[] = [
     { id: 'weather', content: <WeatherPanel state={weather} /> },
+    { id: 'wind-air', content: <WindAirPanel weather={weather} airQuality={airQuality} /> },
   ];
   const bottomViews: RotatingViewItem[] = [
     { id: 'weekly', content: <WeeklyForecast state={weather} /> },

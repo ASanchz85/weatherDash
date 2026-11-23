@@ -102,41 +102,6 @@
   gap: clamp(8px, 2.5cqi, 16px);
 }
 
-.metric {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: clamp(12px, 4cqi, 20px);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-raised);
-}
-
-.metricHighlighted {
-  background: var(--color-accent);
-}
-
-.metricLabel {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: clamp(0.72rem, 3.4cqi, 0.9rem);
-  color: var(--color-text-muted);
-}
-
-.metricHighlighted .metricLabel {
-  color: rgb(255 255 255 / 0.85);
-}
-
-.metricIcon {
-  width: 1.1em;
-  height: 1.1em;
-}
-
-.metricValue {
-  font-size: clamp(1.1rem, 6.5cqi, 1.8rem);
-  font-weight: 700;
-}
-
 .footer {
   font-size: 0.8rem;
   color: var(--color-text-faint);
