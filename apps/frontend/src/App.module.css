@@ -2,6 +2,7 @@
   height: 100%;
   display: grid;
   grid-template-columns: minmax(0, 2.1fr) minmax(320px, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: var(--space-gap);
   padding: var(--space-page);
   overflow: hidden;
@@ -13,7 +14,7 @@
     height: auto;
     min-height: 100%;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(38vh, 1fr) auto;
+    grid-template-rows: minmax(38vh, 1fr) auto auto;
     overflow: visible;
   }
 }

@@ -1,0 +1,87 @@
+.days {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: clamp(6px, 1.2cqi, 16px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(3px, 0.7vmin, 10px);
+  padding: clamp(6px, 1.2vmin, 16px) 4px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  font-size: clamp(0.8rem, 1.9vmin, 1.25rem);
+}
+
+.today {
+  background: var(--color-accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+.weekday {
+  font-weight: 700;
+}
+
+.today .weekday {
+  color: var(--color-accent);
+}
+
+.icon {
+  width: clamp(28px, 4.5vmin, 52px);
+  height: clamp(28px, 4.5vmin, 52px);
+  color: var(--color-text);
+}
+
+.icon[data-tone='warm'] {
+  color: var(--color-accent);
+}
+
+.temperatures {
+  display: flex;
+  gap: 0.6em;
+}
+
+.max {
+  font-weight: 700;
+}
+
+.min {
+  color: var(--color-text-muted);
+}
+
+.rain {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: 0.85em;
+  color: var(--color-text-muted);
+}
+
+.rainIcon {
+  width: 1em;
+  height: 1em;
+}
+
+.message {
+  display: grid;
+  place-items: center;
+  min-height: clamp(80px, 16vmin, 180px);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

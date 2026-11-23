@@ -1,7 +1,7 @@
 .hero {
   position: relative;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   min-height: 0;
   padding: clamp(20px, 4.5vmin, 64px);
   border-radius: var(--radius-lg);
@@ -10,9 +10,9 @@
   background:
     linear-gradient(
       180deg,
-      rgb(14 18 27 / 0.2) 0%,
-      rgb(14 18 27 / 0.38) 45%,
-      rgb(14 18 27 / 0.8) 100%
+      rgb(14 18 27 / 0.75) 0%,
+      rgb(14 18 27 / 0.4) 45%,
+      rgb(14 18 27 / 0.15) 100%
     ),
     url('../../assets/navaluenga.webp') center / cover no-repeat,
     var(--color-surface);
