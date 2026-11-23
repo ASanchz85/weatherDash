@@ -2,13 +2,19 @@ import { act, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App';
+import { fetchAirQuality } from './services/airQualityApi';
 import { fetchUiConfig } from './services/configApi';
 import { fetchWeather, WeatherApiError } from './services/weatherApi';
-import { buildWeatherData } from './test/weatherFixtures';
+import { buildAirQualityData, buildWeatherData } from './test/weatherFixtures';
 
 vi.mock('./services/weatherApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./services/weatherApi')>()),
   fetchWeather: vi.fn(),
+}));
+
+vi.mock('./services/airQualityApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./services/airQualityApi')>()),
+  fetchAirQuality: vi.fn(),
 }));
 
 vi.mock('./services/configApi', async (importOriginal) => ({
@@ -18,10 +24,12 @@ vi.mock('./services/configApi', async (importOriginal) => ({
 
 beforeEach(() => {
   vi.mocked(fetchUiConfig).mockResolvedValue({ rotationIntervalMs: 0 });
+  vi.mocked(fetchAirQuality).mockResolvedValue(buildAirQualityData());
 });
 
 afterEach(() => {
   vi.mocked(fetchWeather).mockReset();
+  vi.mocked(fetchAirQuality).mockReset();
   vi.mocked(fetchUiConfig).mockReset();
 });
 

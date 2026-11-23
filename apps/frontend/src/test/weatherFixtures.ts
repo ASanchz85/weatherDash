@@ -1,4 +1,34 @@
-import type { DailyForecast, WeatherData } from '../types/weather';
+import type { AirQualityData } from '../types/airQuality';
+import type { DailyForecast, HourlyForecast, WeatherData } from '../types/weather';
+
+export const NEXT_REFRESH_IN_MS = 15 * 60 * 1000;
+
+/** 24 horas desde las 18:00 del 23-11-2026 con una curva de temperatura sencilla. */
+export function buildHourly(): HourlyForecast[] {
+  return Array.from({ length: 24 }, (_, index) => {
+    const absoluteHour = 18 + index;
+    const day = 23 + Math.floor(absoluteHour / 24);
+    const hour = absoluteHour % 24;
+    return {
+      time: `2026-11-${String(day)}T${String(hour).padStart(2, '0')}:00`,
+      temperature: 9 - Math.abs(index - 8) / 2,
+      precipitationProbability: index % 6 === 0 ? 20 : 0,
+    };
+  });
+}
+
+export function buildAirQualityData(overrides: Partial<AirQualityData> = {}): AirQualityData {
+  return {
+    europeanAqi: 22,
+    pm25: 3.3,
+    dust: 0,
+    uvIndex: 0,
+    pollen: { olive: 0, grass: 0 },
+    updatedAt: '2026-11-23T10:45:00.000Z',
+    stale: false,
+    ...overrides,
+  };
+}
 
 export function buildForecast(): DailyForecast[] {
   const days: Pick<DailyForecast, 'weatherCode' | 'description' | 'icon'>[] = [
@@ -28,6 +58,10 @@ export function buildWeatherData(overrides: Partial<WeatherData> = {}): WeatherD
       apparentTemperature: 6.1,
       relativeHumidity: 72,
       windSpeed: 12.6,
+      windDirection: 90,
+      windGusts: 24.1,
+      pressure: 1024.9,
+      cloudCover: 96,
       precipitationProbability: 10,
       weatherCode: 2,
       description: 'Parcialmente nuboso',
@@ -36,8 +70,10 @@ export function buildWeatherData(overrides: Partial<WeatherData> = {}): WeatherD
     },
     daily: { temperatureMax: 11.9, temperatureMin: 0.8 },
     forecast: buildForecast(),
+    hourly: buildHourly(),
     updatedAt: '2026-11-23T10:45:00.000Z',
     stale: false,
+    nextRefreshInMs: NEXT_REFRESH_IN_MS,
     ...overrides,
   };
 }

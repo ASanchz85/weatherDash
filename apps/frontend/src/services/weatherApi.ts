@@ -1,5 +1,5 @@
 import { WEATHER_ENDPOINT } from '../config';
-import type { DailyForecast, WeatherData, WeatherIconName } from '../types/weather';
+import type { DailyForecast, HourlyForecast, WeatherData, WeatherIconName } from '../types/weather';
 
 export class WeatherApiError extends Error {
   override readonly name = 'WeatherApiError';
@@ -39,6 +39,25 @@ function isIconName(value: unknown): value is WeatherIconName {
 }
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+
+function parseHourlyForecast(value: unknown): HourlyForecast {
+  if (
+    !isRecord(value) ||
+    typeof value.time !== 'string' ||
+    !ISO_DATE_TIME_PATTERN.test(value.time) ||
+    !isNullableNumber(value.temperature) ||
+    !isNullableNumber(value.precipitationProbability)
+  ) {
+    throw new WeatherApiError('Predicción horaria con formato inesperado');
+  }
+
+  return {
+    time: value.time,
+    temperature: value.temperature,
+    precipitationProbability: value.precipitationProbability,
+  };
+}
 
 function parseDailyForecast(value: unknown): DailyForecast {
   if (
@@ -69,7 +88,7 @@ function parseDailyForecast(value: unknown): DailyForecast {
 /** Valida en tiempo de ejecución la respuesta de la API local antes de usarla en la interfaz. */
 export function parseWeatherData(value: unknown): WeatherData {
   if (!isRecord(value)) throw new WeatherApiError('Respuesta meteorológica no válida');
-  const { location, current, daily, forecast, updatedAt, stale } = value;
+  const { location, current, daily, forecast, hourly, updatedAt, stale, nextRefreshInMs } = value;
 
   if (
     !isRecord(location) ||
@@ -80,6 +99,10 @@ export function parseWeatherData(value: unknown): WeatherData {
     !isNumber(current.apparentTemperature) ||
     !isNumber(current.relativeHumidity) ||
     !isNumber(current.windSpeed) ||
+    !isNullableNumber(current.windDirection) ||
+    !isNullableNumber(current.windGusts) ||
+    !isNullableNumber(current.pressure) ||
+    !isNullableNumber(current.cloudCover) ||
     !isNullableNumber(current.precipitationProbability) ||
     !isNumber(current.weatherCode) ||
     typeof current.description !== 'string' ||
@@ -89,9 +112,12 @@ export function parseWeatherData(value: unknown): WeatherData {
     !isNullableNumber(daily.temperatureMax) ||
     !isNullableNumber(daily.temperatureMin) ||
     !Array.isArray(forecast) ||
+    !Array.isArray(hourly) ||
     typeof updatedAt !== 'string' ||
     Number.isNaN(Date.parse(updatedAt)) ||
-    typeof stale !== 'boolean'
+    typeof stale !== 'boolean' ||
+    !isNumber(nextRefreshInMs) ||
+    nextRefreshInMs < 0
   ) {
     throw new WeatherApiError('Respuesta meteorológica con formato inesperado');
   }
@@ -103,6 +129,10 @@ export function parseWeatherData(value: unknown): WeatherData {
       apparentTemperature: current.apparentTemperature,
       relativeHumidity: current.relativeHumidity,
       windSpeed: current.windSpeed,
+      windDirection: current.windDirection,
+      windGusts: current.windGusts,
+      pressure: current.pressure,
+      cloudCover: current.cloudCover,
       precipitationProbability: current.precipitationProbability,
       weatherCode: current.weatherCode,
       description: current.description,
@@ -111,8 +141,10 @@ export function parseWeatherData(value: unknown): WeatherData {
     },
     daily: { temperatureMax: daily.temperatureMax, temperatureMin: daily.temperatureMin },
     forecast: forecast.map(parseDailyForecast),
+    hourly: hourly.map(parseHourlyForecast),
     updatedAt,
     stale,
+    nextRefreshInMs,
   };
 }
 

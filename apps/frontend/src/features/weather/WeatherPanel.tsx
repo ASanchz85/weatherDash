@@ -1,8 +1,8 @@
 import { CloudOff } from 'lucide-react';
 
+import type { WeatherState } from '../dashboard/useDashboardData';
 import styles from './WeatherPanel.module.css';
 import { WeatherDetails } from './WeatherDetails';
-import type { WeatherState } from './useWeather';
 
 interface WeatherPanelProps {
   state: WeatherState;

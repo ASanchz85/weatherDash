@@ -5,19 +5,19 @@ import { ForecastPanel } from './components/ForecastPanel';
 import { HeroPanel } from './components/HeroPanel';
 import { SidePanel } from './components/SidePanel';
 import { Clock } from './features/clock/Clock';
+import { useDashboardData } from './features/dashboard/useDashboardData';
 import { WeeklyForecast } from './features/forecast/WeeklyForecast';
 import { parseDebugOverrides } from './features/rotation/debugOverrides';
 import { RotatingView, type RotatingViewItem } from './features/rotation/RotatingView';
 import { useRotation } from './features/rotation/useRotation';
 import { useRotationInterval } from './features/rotation/useRotationInterval';
 import { useCommittedTheme } from './features/theme/useCommittedTheme';
-import { useWeather } from './features/weather/useWeather';
 import { WeatherPanel } from './features/weather/WeatherPanel';
 import { themeFromIsDay } from './types/theme';
 
 export function App() {
   // Los datos se piden aquí, fuera de las vistas rotatorias, para que rotar nunca provoque una consulta.
-  const weather = useWeather();
+  const { weather } = useDashboardData();
   const rotationIntervalMs = useRotationInterval();
   const [overrides] = useState(() => parseDebugOverrides(window.location.search));
 
