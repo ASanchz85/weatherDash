@@ -2,8 +2,11 @@
 
 Dashboard personal de uso local, pensado para permanecer abierto en una pantalla mediante Google Chrome en modo kiosk (objetivo: Fedora KDE Plasma). El MVP muestra:
 
-- Fecha y hora local en español, con segundos.
+- Fecha y hora local en español, con segundos, en la esquina superior izquierda del panel principal.
 - Meteorología actual de una localidad configurable (por defecto Navaluenga, Ávila), obtenida de [Open-Meteo](https://open-meteo.com/).
+- Predicción de 7 días (hoy + 6) en una franja inferior a ancho completo: día, icono, máxima/mínima y probabilidad máxima de precipitación.
+
+Ideas de mejora futura basadas en Open-Meteo: [`docs/open-meteo-mejoras.md`](docs/open-meteo-mejoras.md).
 
 ## Requisitos previos
 
@@ -112,8 +115,9 @@ apps/
 └── frontend/                    React 18 + Vite + CSS Modules
     ├── assets/                  imagen del hero y fuentes JetBrains Mono (subconjunto latino, woff2)
     └── src/
-        ├── components/          HeroPanel, SidePanel (layout)
+        ├── components/          HeroPanel, SidePanel, ForecastPanel (layout)
         ├── features/clock/      Clock, useCurrentTime, formateo Intl
+        ├── features/forecast/   WeeklyForecast, formateo del día de la semana
         ├── features/weather/    WeatherPanel, WeatherDetails, WeatherIcon, useWeather, formateo
         ├── services/            weatherApi (fetch a la API local + validación en runtime)
         ├── types/               contrato de la API
@@ -126,9 +130,10 @@ apps/
 - **Caché en memoria** con validez de `WEATHER_REFRESH_INTERVAL`. Las peticiones concurrentes comparten una única llamada al proveedor. Si Open-Meteo falla se devuelve la última información válida con `stale: true`, y no se vuelve a intentar hasta pasado un minuto, para no retrasar cada respuesta con el timeout. Si nunca hubo datos se responde `503` con `{ "error": "WEATHER_UNAVAILABLE" }`.
 - **Arranque no bloqueante**: la primera consulta se lanza en segundo plano al arrancar; la localidad se resuelve de forma perezosa y se reintenta si el geocoding falla.
 - **Reloj aislado**: el estado de la hora vive en `Clock`, de modo que su tic de cada segundo no vuelve a renderizar el resto del dashboard. Cada tic se programa con `setTimeout` hasta el siguiente segundo exacto según `Date.now()`, así que los retrasos no se acumulan y solo existe un temporizador. La fecha es un componente memorizado que solo se actualiza cuando cambia el día.
-- **Frontend resiliente**: `useWeather` consulta la API local cada 5 minutos (cada 30 s tras un error) y conserva los últimos datos si una consulta falla. Un error meteorológico nunca afecta al reloj.
+- **Frontend resiliente**: `useWeather` consulta la API local cada 5 minutos (cada 30 s tras un error) y conserva los últimos datos si una consulta falla. Se llama una sola vez en `App` y su estado se pasa al panel meteorológico y a la predicción semanal, así que ambos comparten una única consulta. Un error meteorológico nunca afecta al reloj.
+- **Layout y resoluciones**: `App.module.css` usa una cuadrícula de dos filas (hero y panel meteorológico arriba, predicción a ancho completo debajo) y apila todo en vertical. La imagen del hero usa `background-size: cover`: conserva su proporción (3:2) y solo se recorta, sin deformarse. Tras cualquier cambio de layout ejecuta `npm run screenshots` (ver [Regresión visual](#regresión-visual)).
 - **Sin CORS**: en desarrollo se usa el proxy de Vite; en producción todo se sirve desde el mismo origen.
-- **Ligero**: bundle JS de ~52 KB gzip; fuentes reducidas de 2,5 MB a 13 KB y 34 KB; sin animaciones.
+- **Ligero**: bundle JS de ~53 KB gzip; fuentes reducidas de 2,5 MB a 13 KB y 34 KB; sin animaciones.
 
 ## API
 
@@ -155,19 +160,32 @@ apps/
     "isDay": true
   },
   "daily": { "temperatureMax": 12, "temperatureMin": 0.9 },
+  "forecast": [
+    {
+      "date": "2026-11-23",
+      "weatherCode": 45,
+      "description": "Niebla",
+      "icon": "fog",
+      "temperatureMax": 12.2,
+      "temperatureMin": 0.8,
+      "precipitationProbabilityMax": 0
+    }
+  ],
   "updatedAt": "2026-11-23T11:06:09.136Z",
   "stale": false
 }
 ```
 
-`precipitationProbability`, `temperatureMax` y `temperatureMin` pueden ser `null` si Open-Meteo no los proporciona.
+`forecast` contiene 7 elementos (hoy + 6 días); aquí se muestra solo el primero. `date` es la fecha local de la localidad (`YYYY-MM-DD`) y el primer elemento es siempre hoy. `daily` equivale a los extremos de `forecast[0]` y se mantiene por compatibilidad.
+
+`precipitationProbability`, `temperatureMax`, `temperatureMin` y `precipitationProbabilityMax` pueden ser `null` si Open-Meteo no los proporciona.
 
 ## Integración con Open-Meteo
 
 - Geocoding: `https://geocoding-api.open-meteo.com/v1/search?name=…&countryCode=ES&language=es&count=1`.
-- Previsión: `https://api.open-meteo.com/v1/forecast` con `current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day,precipitation_probability` y `daily=temperature_2m_max,temperature_2m_min`, `forecast_days=1`, viento en km/h.
+- Previsión: `https://api.open-meteo.com/v1/forecast` con `current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day,precipitation_probability` y `daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max`, `forecast_days=7`, viento en km/h.
 - Todas las respuestas se validan con Zod; un formato inesperado se trata como un fallo del proveedor.
-- Uso no comercial gratuito y sin API key. Con la caché de 15 minutos el dashboard realiza ~96 peticiones diarias, muy por debajo de los límites.
+- Uso no comercial gratuito y sin API key. Con la caché de 15 minutos el dashboard realiza ~96 peticiones diarias (cada una cuenta como ~1,1 llamadas por tener más de 10 variables), muy por debajo de los límites.
 
 ## Modo kiosk (Fedora KDE Plasma)
 
