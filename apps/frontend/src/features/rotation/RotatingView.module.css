@@ -1,0 +1,17 @@
+.view {
+  height: 100%;
+  transition:
+    opacity var(--rotation-fade-ms) ease,
+    transform var(--rotation-fade-ms) ease;
+}
+
+.view[data-fading='true'] {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view {
+    transition: none;
+  }
+}

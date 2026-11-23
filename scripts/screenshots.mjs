@@ -2,7 +2,7 @@
 // Regresión visual manual: captura el dashboard en las resoluciones objetivo con Chrome headless
 // y comprueba scroll, desbordes, solapes y el recorte (aspect-ratio) de la imagen del hero.
 //
-// Uso: npm run screenshots -- [--label=baseline] [--url=http://localhost:3000] [--out=/tmp/weatherdash-screenshots]
+// Uso: npm run screenshots -- [--label=baseline] [--url=http://localhost:3000] [--query=page=1] [--out=/tmp/weatherdash-screenshots]
 // Requiere la app sirviéndose (npm run start tras npm run build, o npm run dev con --url=http://localhost:5173).
 // Variables opcionales: CHROME_BIN, PORT, SCREENSHOT_URL.
 import { spawn } from 'node:child_process';
@@ -33,11 +33,14 @@ const { values: options } = parseArgs({
   options: {
     label: { type: 'string', default: 'actual' },
     url: { type: 'string' },
+    query: { type: 'string', default: '' },
     out: { type: 'string', default: join(tmpdir(), 'weatherdash-screenshots') },
   },
 });
 
 const targetUrl = options.url ?? process.env.SCREENSHOT_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+// Parámetros de URL de depuración de la app (p. ej. page=1) para capturar cada vista.
+const pageUrl = options.query ? `${targetUrl}${targetUrl.includes('?') ? '&' : '?'}${options.query}` : targetUrl;
 const outputDir = join(options.out, options.label);
 
 function findChrome() {
@@ -289,7 +292,7 @@ async function captureViewport(page, viewport) {
     mobile: false,
   });
   const loaded = page.once('Page.loadEventFired');
-  await page.send('Page.navigate', { url: targetUrl });
+  await page.send('Page.navigate', { url: pageUrl });
   await loaded;
 
   const ready = `document.fonts.ready.then(() => !document.querySelector('[aria-busy="true"]'))`;
@@ -358,7 +361,7 @@ async function main() {
   }
 
   const image = results.find((entry) => entry.metrics.hero?.image)?.metrics.hero.image;
-  console.log(`URL: ${targetUrl}`);
+  console.log(`URL: ${pageUrl}`);
   if (image) console.log(`Imagen del hero: ${image.width}x${image.height} (ratio ${(image.width / image.height).toFixed(3)})`);
   for (const entry of results) {
     console.log(formatLine(entry));

@@ -1,9 +1,4 @@
-.panel {
+.layout {
   grid-column: 1 / -1;
-  min-height: 0;
   padding: clamp(10px, 1.8vmin, 24px);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  container-type: inline-size;
 }

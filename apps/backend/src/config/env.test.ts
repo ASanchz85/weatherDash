@@ -15,6 +15,13 @@ describe('loadConfig', () => {
       coordinates: null,
       refreshIntervalMs: 900000,
     });
+    expect(config.ui).toEqual({ rotationIntervalMs: 300000 });
+  });
+
+  it('permite configurar o desactivar la rotación de vistas', () => {
+    expect(loadConfig({ UI_ROTATION_INTERVAL: '60000' }).ui.rotationIntervalMs).toBe(60000);
+    expect(loadConfig({ UI_ROTATION_INTERVAL: '0' }).ui.rotationIntervalMs).toBe(0);
+    expect(loadConfig({ UI_ROTATION_INTERVAL: '' }).ui.rotationIntervalMs).toBe(300000);
   });
 
   it('interpreta coordenadas explícitas y trata las variables vacías como no definidas', () => {
@@ -36,5 +43,7 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ WEATHER_LATITUDE: '40.65' })).toThrow(ConfigError);
     expect(() => loadConfig({ PORT: 'abc' })).toThrow(ConfigError);
     expect(() => loadConfig({ WEATHER_REFRESH_INTERVAL: '1000' })).toThrow(ConfigError);
+    expect(() => loadConfig({ UI_ROTATION_INTERVAL: '5000' })).toThrow(ConfigError);
+    expect(() => loadConfig({ UI_ROTATION_INTERVAL: '-1' })).toThrow(ConfigError);
   });
 });

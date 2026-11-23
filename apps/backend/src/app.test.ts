@@ -9,6 +9,7 @@ const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 async function createTestApp(fetchForecast: WeatherProvider['fetchForecast']) {
   const app = await buildApp({
     weatherConfig: { ...weatherConfig, coordinates: { latitude: 40.41, longitude: -4.71 } },
+    uiConfig: { rotationIntervalMs: 300000 },
     weatherProvider: { geocode: vi.fn(), fetchForecast },
     staticDir: null,
     now: () => Date.UTC(2026, 10, 23, 10),
@@ -28,6 +29,15 @@ describe('API REST', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ status: 'ok' });
+  });
+
+  it('GET /api/config expone el intervalo de rotación de la interfaz', async () => {
+    const app = await createTestApp(vi.fn());
+    const response = await app.inject({ method: 'GET', url: '/api/config' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.json()).toEqual({ rotationIntervalMs: 300000 });
   });
 
   it('GET /api/weather devuelve la información normalizada', async () => {

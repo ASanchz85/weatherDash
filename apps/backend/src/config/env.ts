@@ -10,6 +10,8 @@ const DEFAULT_COUNTRY_CODE = 'ES';
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 const DEFAULT_REQUEST_TIMEOUT_MS = 8000;
 const MIN_REFRESH_INTERVAL_MS = 60 * 1000;
+const DEFAULT_ROTATION_INTERVAL_MS = 5 * 60 * 1000;
+const MIN_ROTATION_INTERVAL_MS = 10 * 1000;
 
 /** Las variables vacías en .env se tratan como no definidas. */
 function blankToUndefined(value: unknown): unknown {
@@ -46,6 +48,15 @@ const envSchema = z
       blankToUndefined,
       z.coerce.number().int().positive().default(DEFAULT_REQUEST_TIMEOUT_MS),
     ),
+    // 0 desactiva la rotación de vistas.
+    UI_ROTATION_INTERVAL: z
+      .preprocess(
+        blankToUndefined,
+        z.coerce.number().int().min(0).default(DEFAULT_ROTATION_INTERVAL_MS),
+      )
+      .refine((value) => value === 0 || value >= MIN_ROTATION_INTERVAL_MS, {
+        message: `debe ser 0 (desactivada) o al menos ${MIN_ROTATION_INTERVAL_MS} ms`,
+      }),
   })
   .refine((env) => (env.WEATHER_LATITUDE === undefined) === (env.WEATHER_LONGITUDE === undefined), {
     message: 'WEATHER_LATITUDE y WEATHER_LONGITUDE deben definirse juntas o dejarse ambas vacías',
@@ -70,6 +81,11 @@ export interface WeatherConfig {
   requestTimeoutMs: number;
 }
 
+export interface UiConfig {
+  /** Tiempo entre cambios de vista en la interfaz; 0 desactiva la rotación. */
+  rotationIntervalMs: number;
+}
+
 export interface AppConfig {
   nodeEnv: 'development' | 'production' | 'test';
   host: string;
@@ -77,6 +93,7 @@ export interface AppConfig {
   /** Directorio del frontend compilado; solo se sirve en producción. */
   staticDir: string | null;
   weather: WeatherConfig;
+  ui: UiConfig;
 }
 
 export class ConfigError extends Error {
@@ -113,5 +130,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       refreshIntervalMs: parsed.WEATHER_REFRESH_INTERVAL,
       requestTimeoutMs: parsed.WEATHER_REQUEST_TIMEOUT,
     },
+    ui: { rotationIntervalMs: parsed.UI_ROTATION_INTERVAL },
   };
 }
