@@ -1,0 +1,74 @@
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: clamp(12px, 4cqi, 20px);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+}
+
+.compact {
+  gap: 2px;
+  padding: clamp(6px, 1.1vmin, 12px) clamp(10px, 3.4cqi, 16px);
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.highlighted {
+  background: var(--color-accent);
+}
+
+.toned {
+  background: color-mix(in srgb, var(--tone) 18%, var(--color-surface-raised));
+}
+
+.metric[data-tone='good'] {
+  --tone: var(--color-good);
+}
+
+.metric[data-tone='warning'] {
+  --tone: var(--color-warning);
+}
+
+.metric[data-tone='accent'] {
+  --tone: var(--color-accent);
+}
+
+.metric[data-tone='danger'] {
+  --tone: var(--color-danger);
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: clamp(0.72rem, 3.4cqi, 0.9rem);
+  color: var(--color-text-muted);
+}
+
+.highlighted .label {
+  color: rgb(255 255 255 / 0.85);
+}
+
+.icon {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.value {
+  font-size: clamp(1.1rem, 6.5cqi, 1.8rem);
+  font-weight: 700;
+}
+
+.compact .value {
+  font-size: clamp(1rem, 5.4cqi, 1.5rem);
+}
+
+.detail {
+  margin-left: 0.5em;
+  font-size: 0.6em;
+  font-weight: 400;
+  color: var(--tone, var(--color-text-muted));
+}

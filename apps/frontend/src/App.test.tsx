@@ -59,6 +59,40 @@ describe('App', () => {
     expect(fetchWeather).toHaveBeenCalledTimes(1);
   });
 
+  describe('vistas rotatorias', () => {
+    afterEach(() => {
+      window.history.replaceState(null, '', '/');
+    });
+
+    async function renderApp() {
+      render(<App />);
+      await act(async () => {
+        await Promise.resolve();
+      });
+      return screen.getByRole('complementary', { name: 'Meteorología' });
+    }
+
+    it('muestra el tiempo actual en la card lateral por defecto', async () => {
+      vi.mocked(fetchWeather).mockResolvedValue(buildWeatherData());
+      const side = await renderApp();
+
+      expect(within(side).getByText('Parcialmente nuboso')).toBeInTheDocument();
+      expect(within(side).queryByText('Viento y calidad del aire')).not.toBeInTheDocument();
+    });
+
+    it('muestra viento y calidad del aire con ?page=1, con los datos ya cargados', async () => {
+      window.history.replaceState(null, '', '/?page=1');
+      vi.mocked(fetchWeather).mockResolvedValue(buildWeatherData());
+      const side = await renderApp();
+
+      expect(within(side).getByText('Viento y calidad del aire')).toBeInTheDocument();
+      expect(within(side).getByRole('img', { name: 'Viento del E (90°)' })).toBeInTheDocument();
+      expect(within(side).getByText('Razonable')).toBeInTheDocument();
+      expect(fetchWeather).toHaveBeenCalledTimes(1);
+      expect(fetchAirQuality).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('tema del hero', () => {
     afterEach(() => {
       window.history.replaceState(null, '', '/');
