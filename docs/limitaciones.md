@@ -16,7 +16,7 @@
 - **`@testing-library/user-event` no instalado**: el MVP no tiene interacción de usuario que probar. Se añadirá cuando exista (p. ej. un selector de localidad).
 - **Script `start` del backend**: usa `NODE_ENV=production node …`, sintaxis de shell POSIX. En Windows habría que usar `cross-env` o definir `NODE_ENV` en `.env`.
 - **Sin logs en fichero ni rotación**: Fastify registra en stdout en JSON; en Fedora se recogerán con journald a través de systemd.
-- **Sin tests end-to-end ni de regresión visual**: las capturas en 1920×1080, 1366×768, 1280×720 y 1080×1920 se revisaron manualmente con Chrome headless.
+- **Regresión visual manual asistida**: `npm run screenshots` genera capturas y comprueba scroll, desbordes y recorte de la imagen del hero en 1920×1080, 1366×768, 1280×720, 1600×900, 1280×800 y 1080×1920, pero no compara píxeles ni se ejecuta en CI; las capturas se revisan a ojo. Tampoco hay tests end-to-end.
 
 ## Despliegue
 

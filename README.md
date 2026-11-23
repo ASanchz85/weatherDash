@@ -47,9 +47,25 @@ cp .env.example .env   # y ajusta los valores si es necesario
 | `npm run start`     | Backend en producción sirviendo el frontend compilado (requiere `build`).     |
 | `npm run test`      | Pruebas de ambos proyectos con Vitest.                                       |
 | `npm run typecheck` | Comprobación de tipos de ambos proyectos.                                    |
+| `npm run screenshots` | Capturas y comprobaciones de layout con Chrome headless (ver [Regresión visual](#regresión-visual)). |
 | `scripts/kiosk.sh`  | Compila, arranca el backend en producción y abre Chrome en pantalla completa (modo kiosk). `--skip-build` omite la compilación. |
 
 En desarrollo abre <http://localhost:5173>: Vite reenvía `/api` al backend, por lo que no se necesita CORS. En producción abre <http://localhost:3000>.
+
+### Regresión visual
+
+`scripts/screenshots.mjs` abre la app con Chrome headless en 1920×1080, 1366×768, 1280×720, 1600×900, 1280×800 y 1080×1920, guarda una captura por resolución y comprueba:
+
+- que no hay scroll en horizontal ni contenido desbordado o solapado;
+- que el hero sigue usando `background-size: cover` (la imagen no se deforma);
+- el recorte de la imagen del hero (error si supera el 25 % en las tres resoluciones horizontales requeridas, aviso en el resto).
+
+```bash
+npm run build && npm run start          # en otra terminal
+npm run screenshots -- --label=baseline # capturas en /tmp/weatherdash-screenshots/baseline
+```
+
+Opciones: `--label` (subcarpeta de salida), `--url` (por defecto `http://localhost:$PORT` o 3000; usa `http://localhost:5173` con `npm run dev`) y `--out` (directorio de salida). Respeta `CHROME_BIN`. Termina con código distinto de 0 si hay errores. Las capturas no se guardan en el repositorio; compara a ojo las de distintas etiquetas.
 
 ## Configuración (variables de entorno)
 
