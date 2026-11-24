@@ -23,4 +23,17 @@ describe('HeroPanel', () => {
     );
     expect(hero).toHaveAttribute('data-theme', 'night');
   });
+
+  it('con una foto propia sustituye a las fotos de día y de noche', () => {
+    const { container } = render(
+      <HeroPanel label="Noticia" imageUrl="https://img.example.com/foto_800.jpg">
+        <p>Contenido</p>
+      </HeroPanel>,
+    );
+
+    const images = container.querySelectorAll<HTMLElement>('[data-hero-image]');
+    expect(images).toHaveLength(1);
+    expect(images[0]).toHaveAttribute('data-hero-image', 'custom');
+    expect(images[0]?.style.backgroundImage).toContain('https://img.example.com/foto_800.jpg');
+  });
 });

@@ -95,6 +95,7 @@ Solo para desarrollo y capturas; se ignoran si no son válidos.
 | --- | --- |
 | `?page=N` | Fija la página mostrada (0 = tiempo y semana, 1 = viento y aire y próximas horas) y desactiva la rotación. |
 | `?theme=day` / `?theme=night` | Fuerza la foto de día o de noche, sin esperar a los datos ni a la rotación. |
+| `?feed=national` / `international` / `markets` | Fija la vista de noticias de ese feed (primera noticia) y desactiva la rotación. |
 
 ## Configuración (variables de entorno)
 
@@ -115,7 +116,12 @@ El backend lee el fichero `.env` de la raíz del repositorio (ver `.env.example`
 | `WEATHER_TIMEZONE`               | zona del geocoding | Zona horaria IANA para los extremos diarios (p. ej. `Europe/Madrid`).          |
 | `WEATHER_REFRESH_INTERVAL`       | `900000`        | Ciclo de actualización de los datos en ms (mínimo 60000): validez de la caché meteorológica y cadencia con la que el frontend vuelve a consultar. La calidad del aire se cachea al menos 1 hora. |
 | `WEATHER_REQUEST_TIMEOUT`        | `8000`          | Timeout de cada petición a Open-Meteo en ms.                                      |
-| `UI_ROTATION_INTERVAL`           | `300000`        | Tiempo entre cambios de vista en ms (5 minutos). `0` desactiva la rotación; si no es 0, mínimo 10000. |
+| `UI_ROTATION_INTERVAL`           | `300000`        | Tiempo que dura cada vista del tiempo en ms (5 minutos). `0` desactiva toda la rotación (también las noticias); si no es 0, mínimo 10000. |
+| `UI_NEWS_ITEM_DURATION`          | `60000`         | Tiempo que cada noticia permanece resaltada en el hero en ms (1 minuto); mínimo 5000. |
+| `NEWS_FEED_NATIONAL_URL`         | Europa Press `ch=66`  | RSS de la rotación Nacional.                                              |
+| `NEWS_FEED_INTERNATIONAL_URL`    | Europa Press `ch=69`  | RSS de la rotación Internacional.                                         |
+| `NEWS_FEED_MARKETS_URL`          | Europa Press `ch=136` | RSS de la rotación Mercados.                                              |
+| `NEWS_REFRESH_INTERVAL`          | `3600000`       | Cada cuánto consulta el backend los tres feeds en ms (1 hora); mínimo 60000. El timeout es `WEATHER_REQUEST_TIMEOUT`. |
 
 La configuración se valida con Zod al arrancar; un valor inválido detiene el servidor con un mensaje descriptivo.
 
@@ -132,7 +138,8 @@ apps/
 │       ├── database/            database.ts (apertura de SQLite y migraciones), sqlite-snapshot-storage.ts (última información por recurso)
 │       ├── modules/
 │       │   ├── health/          GET /api/health
-│       │   ├── ui/              GET /api/config (configuración de la interfaz, p. ej. intervalo de rotación)
+│       │   ├── ui/              GET /api/config (configuración de la interfaz: tiempos de rotación)
+│       │   ├── news/            RSS de Europa Press: proveedor (parseo), repositorio SQLite, servicio (refresco, retención) y POST /api/news/:feed/rotation
 │       │   ├── location/        localidad resuelta una sola vez (geocoding o coordenadas) y compartida
 │       │   ├── open-meteo/      cliente HTTP común (timeout, estado HTTP, validación con Zod)
 │       │   ├── air-quality/     GET /api/air-quality: proveedor, esquema, servicio (caché ≥ 1 h) y rutas
@@ -151,8 +158,9 @@ apps/
     └── src/
         ├── components/          HeroPanel (dos capas de foto), Panel, SidePanel, ForecastPanel (layout), Metric (ficha de medida)
         ├── features/clock/      Clock, useCurrentTime, formateo Intl
-        ├── features/dashboard/  useDashboardData: único dueño de la consulta de datos
-        ├── features/rotation/   useRotation, RotatingView (fundido entre vistas), configuración y parámetros de depuración
+        ├── features/dashboard/  useDashboardData: único dueño de la consulta de datos; WeatherDashboard
+        ├── features/news/       NewsDashboard, NewsHero, NewsSidePanel, WeatherSummary (reloj + temperatura + rosa de los vientos)
+        ├── features/rotation/   useDashboardCycle (ciclo tiempo/noticias), RotatingView (fundido entre vistas), TitleSlide, configuración y parámetros de depuración
         ├── features/theme/     useCommittedTheme (tema día/noche sincronizado con la rotación)
         ├── features/forecast/   WeeklyForecast, HourlyForecast (gráfica de 24 h), formateo
         ├── features/weather/    WeatherPanel, WeatherDetails, WeatherIcon, formateo
@@ -170,11 +178,13 @@ apps/
 - **Arranque no bloqueante**: la primera consulta de cada módulo se lanza en segundo plano al arrancar; la localidad se resuelve una sola vez, de forma perezosa y compartida, y se reintenta si el geocoding falla.
 - **Reloj aislado**: el estado de la hora vive en `Clock`, de modo que su tic de cada segundo no vuelve a renderizar el resto del dashboard. Cada tic se programa con `setTimeout` hasta el siguiente segundo exacto según `Date.now()`, así que los retrasos no se acumulan y solo existe un temporizador. La fecha es un componente memorizado que solo se actualiza cuando cambia el día.
 - **Ciclo único de datos**: `useDashboardData` es el único dueño de la consulta. Pide a la vez el tiempo y la calidad del aire (y cada estado se publica en cuanto llega, con errores independientes), y repite el ciclo cuando el servidor indica que su caché caduca: `/api/weather` devuelve `nextRefreshInMs`, calculado en el servidor, y el frontend espera ese tiempo más 1 s. Así la cadencia sigue a `WEATHER_REFRESH_INTERVAL` sin desfases de reloj. Tras un fallo reintenta a los 30 s conservando los últimos datos. Los datos viven en `App`, fuera de las vistas rotatorias: **rotar nunca provoca una consulta**. El frontend no persiste nada en el navegador (ni `localStorage` ni `sessionStorage`): el backend conserva la última información en memoria y en SQLite, responde en milisegundos y la sirve incluso sin red o tras un reinicio.
-- **Rotación de vistas**: un único temporizador (`useRotation`) avanza la página cada `UI_ROTATION_INTERVAL` (leído en `GET /api/config`, sin recompilar). Cada espacio muestra su vista de esa página; `RotatingView` funde la actual (0,35 s) y después la nueva (0,35 s), sin otras animaciones y sin fundido con `prefers-reduced-motion`.
+- **Rotación de vistas**: `useDashboardCycle` es una máquina de estados con un único temporizador por etapa. El ciclo es: vistas del tiempo × 2 vueltas (cada una dura `UI_ROTATION_INTERVAL`) → diapositiva «Nacional» → noticias → diapositiva «Tiempo» → tiempo × 2 → «Internacional» → noticias → … → «Mercados» → vuelta al inicio. Cada noticia permanece `UI_NEWS_ITEM_DURATION`; al mostrarlas todas termina el feed. La rotación de un feed se pide al backend justo antes de mostrarlo, y si no tiene noticias o falla se salta. Los tiempos se leen en `GET /api/config`, sin recompilar. `RotatingView` funde la vista actual (0,35 s) y después la nueva (0,35 s), también entre el dashboard y las diapositivas, sin fundido con `prefers-reduced-motion`.
+- **Noticias**: el backend consulta los tres feeds cada `NEWS_REFRESH_INTERVAL` y guarda cada ítem en la tabla `news` con el origen (`feed`: `national`, `international` o `markets`), independiente de la categoría que publica Europa Press. Solo se conservan las noticias de hoy y de ayer (según `WEATHER_TIMEZONE`, por defecto `Europe/Madrid`), se descartan las que no traen imagen (`enclosure`) y los duplicados se filtran por URL. `has_been_shown` permite que cada rotación elija las 8 noticias más recientes sin mostrar; si quedan menos de 8, se reinicia el estado del feed y se completa con las más recientes ya mostradas. El frontend sustituye `_120` por `_800` en la URL de la foto para pedirla con más resolución.
 - **Tema día/noche**: la foto depende de `is_day`. El primer dato válido y la rotación desactivada se aplican al instante; un cambio posterior espera al siguiente ciclo de rotación, para que la foto y las vistas cambien a la vez. Solo cambia la foto: los colores se mantienen.
-- **Colores con significado**: el azul (`--color-rain`) se reserva para la lluvia y el naranja para el sol. Un icono es azul si la condición incluye lluvia (llovizna, lluvia, aguanieve, chubascos y tormenta, de día o de noche) y naranja si es cielo despejado o mayormente despejado de día (`weatherTone`). La predicción semanal colorea el icono y la probabilidad de lluvia (azul), y la máxima de los días soleados (naranja). La gráfica horaria dibuja las barras de lluvia en azul y resalta con una columna naranja las horas soleadas (por eso el backend envía `icon` e `isDay` por hora). El resalte sutil de «Hoy» y de la ficha de sensación comparte los tokens `--highlight-*`.
+- **Colores con significado**: el azul (`--color-rain`) se reserva para la lluvia y el naranja para el sol. Un icono es azul si la condición incluye lluvia (llovizna, lluvia, aguanieve, chubascos y tormenta, de día o de noche) y naranja si es cielo despejado o mayormente despejado de día (`weatherTone`). La predicción semanal colorea el icono y la probabilidad de lluvia (azul), y la gráfica horaria dibuja las barras de lluvia en azul. El resalte sutil de «Hoy» y de la ficha de sensación comparte los tokens `--highlight-*`.
+- **Color de las temperaturas** (`temperatureTone`, tokens `--temp-*`), igual en la card lateral, la predicción semanal, la gráfica horaria y el resumen de las noticias; se evalúa sobre el valor redondeado que se muestra y el blanco es el color por defecto: > 36° rojo, > 29° naranja, > 22° amarillo, < 12° azul, < 5° azul oscuro y < 0° morado.
 - **Frontend resiliente**: un error meteorológico nunca afecta al reloj.
-- **Layout y resoluciones**: `App.module.css` usa una cuadrícula de dos filas (hero y card lateral arriba, franja inferior a ancho completo debajo) y apila todo en vertical. Las fotos usan `background-size: cover`: conservan su proporción y solo se recortan, sin deformarse. Todas las vistas de la franja inferior comparten la altura `--forecast-content-height` para que rotar no mueva el layout. Tras cualquier cambio de layout ejecuta `npm run screenshots` (ver [Regresión visual](#regresión-visual)).
+- **Layout y resoluciones**: `DashboardLayout.module.css` usa una cuadrícula de dos filas (hero y card lateral arriba, franja inferior a ancho completo debajo) y apila todo en vertical. Las fotos usan `background-size: cover`: conservan su proporción y solo se recortan, sin deformarse. Todas las vistas de la franja inferior comparten la altura `--forecast-content-height` para que rotar no mueva el layout. Tras cualquier cambio de layout ejecuta `npm run screenshots` (ver [Regresión visual](#regresión-visual)).
 - **Sin CORS**: en desarrollo se usa el proxy de Vite; en producción todo se sirve desde el mismo origen.
 - **Ligero**: bundle JS de ~57 KB gzip; fuentes reducidas de 2,5 MB a 13 KB y 34 KB; fotos en WebP (187 KB y 59 KB); gráficas en SVG propio, sin librerías de gráficos; sin animaciones continuas.
 
@@ -191,10 +201,34 @@ apps/
 Configuración de la interfaz, leída en tiempo de ejecución. Sin caché.
 
 ```json
-{ "rotationIntervalMs": 300000 }
+{ "rotationIntervalMs": 300000, "newsItemDurationMs": 60000 }
 ```
 
-`0` indica que la rotación está desactivada.
+`rotationIntervalMs = 0` indica que la rotación está desactivada.
+
+### `POST /api/news/:feed/rotation`
+
+`:feed` es `national`, `international` o `markets` (otro valor responde `404`). Devuelve hasta 8 noticias del feed, las más recientes sin mostrar, y las marca como mostradas; por eso es `POST`. Sin caché.
+
+```json
+{
+  "feed": "international",
+  "items": [
+    {
+      "id": 12,
+      "title": "…",
+      "link": "https://www.europapress.es/internacional/noticia-….html",
+      "description": "…",
+      "enclosureUrl": "https://img.europapress.es/fotoweb/fotonoticia_20261124083249_120.jpg",
+      "guid": "…",
+      "publishedAt": "2026-11-24T07:32:49.000Z",
+      "category": "Internacional"
+    }
+  ]
+}
+```
+
+`items` queda vacío si el feed no tiene noticias.
 
 ### `GET /api/weather`
 
@@ -256,6 +290,11 @@ Configuración de la interfaz, leída en tiempo de ejecución. Sin caché.
 ```
 
 Todas las medidas pueden ser `null`. El polen llega a `0` fuera de temporada y a `null` donde el proveedor no tiene cobertura (fuera de Europa). Si no hay datos responde `503` con `{ "error": "AIR_QUALITY_UNAVAILABLE" }`.
+
+## Integración con Europa Press
+
+- Los feeds RSS 2.0 se parsean con `fast-xml-parser` y cada `item` se valida con Zod (`title`, `link`, `enclosure`, `pubDate`; `description`, `guid` y `category` son opcionales). Un ítem inválido o sin imagen se omite sin invalidar el resto del feed.
+- Si un feed falla se registra y se conservan las noticias que ya había; los demás feeds se actualizan igualmente.
 
 ## Integración con Open-Meteo
 

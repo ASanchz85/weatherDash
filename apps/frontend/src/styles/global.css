@@ -29,6 +29,13 @@
   /* Naranja: sol y resaltados; azul: lluvia */
   --color-rain: #5eaaf0;
   --color-rain-soft: rgb(94 170 240 / 0.16);
+  /* Tramos de temperatura; el blanco (--color-text) es el color por defecto */
+  --temp-hot: #f25c5c;
+  --temp-warm: #f2803a;
+  --temp-mild: #f0c35a;
+  --temp-cool: #6bb4f5;
+  --temp-cold: #4a76e0;
+  --temp-freezing: #b680ee;
   /* Resaltado sutil («Hoy», sensación): tinte suave con un borde fino */
   --highlight-bg: var(--color-accent-soft);
   --highlight-ring: color-mix(in srgb, var(--color-accent) 45%, transparent);

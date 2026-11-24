@@ -2,22 +2,29 @@ import { describe, expect, it } from 'vitest';
 
 import { parseDebugOverrides } from './debugOverrides';
 
+const NONE = { page: null, theme: null, feed: null };
+
 describe('parseDebugOverrides', () => {
   it('lee la página fijada', () => {
-    expect(parseDebugOverrides('?page=1')).toEqual({ page: 1, theme: null });
-    expect(parseDebugOverrides('?page=0')).toEqual({ page: 0, theme: null });
+    expect(parseDebugOverrides('?page=1')).toEqual({ ...NONE, page: 1 });
+    expect(parseDebugOverrides('?page=0')).toEqual({ ...NONE, page: 0 });
   });
 
   it('lee el tema forzado', () => {
-    expect(parseDebugOverrides('?theme=night')).toEqual({ page: null, theme: 'night' });
-    expect(parseDebugOverrides('?page=1&theme=day')).toEqual({ page: 1, theme: 'day' });
+    expect(parseDebugOverrides('?theme=night')).toEqual({ ...NONE, theme: 'night' });
+    expect(parseDebugOverrides('?page=1&theme=day')).toEqual({ ...NONE, page: 1, theme: 'day' });
+  });
+
+  it('lee el feed de noticias fijado', () => {
+    expect(parseDebugOverrides('?feed=markets')).toEqual({ ...NONE, feed: 'markets' });
   });
 
   it('ignora valores ausentes o no válidos', () => {
-    expect(parseDebugOverrides('')).toEqual({ page: null, theme: null });
-    expect(parseDebugOverrides('?page=abc')).toEqual({ page: null, theme: null });
-    expect(parseDebugOverrides('?page=-1')).toEqual({ page: null, theme: null });
-    expect(parseDebugOverrides('?page=1.5')).toEqual({ page: null, theme: null });
-    expect(parseDebugOverrides('?theme=sunset')).toEqual({ page: null, theme: null });
+    expect(parseDebugOverrides('')).toEqual(NONE);
+    expect(parseDebugOverrides('?page=abc')).toEqual(NONE);
+    expect(parseDebugOverrides('?page=-1')).toEqual(NONE);
+    expect(parseDebugOverrides('?page=1.5')).toEqual(NONE);
+    expect(parseDebugOverrides('?theme=sunset')).toEqual(NONE);
+    expect(parseDebugOverrides('?feed=deportes')).toEqual(NONE);
   });
 });

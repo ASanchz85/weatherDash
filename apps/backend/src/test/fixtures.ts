@@ -2,6 +2,7 @@ import type { WeatherConfig } from '../config/env.js';
 import type { AirQualityResponse } from '../modules/air-quality/air-quality.schema.js';
 import type { AirQualitySnapshot } from '../modules/air-quality/air-quality.types.js';
 import type { ResolvedLocation } from '../modules/location/location.types.js';
+import type { ParsedNewsItem } from '../modules/news/news.types.js';
 import type { ForecastResponse } from '../modules/weather/weather.schema.js';
 import type {
   DailyForecast,
@@ -189,3 +190,48 @@ export function jsonResponse(body: unknown, status = 200): Response {
     headers: { 'Content-Type': 'application/json' },
   });
 }
+
+export function buildNewsItem(slug: string, overrides: Partial<ParsedNewsItem> = {}): ParsedNewsItem {
+  const link = `https://www.europapress.es/internacional/noticia-${slug}.html`;
+  return {
+    title: `Titular ${slug}`,
+    link,
+    description: `Descripción ${slug}`,
+    enclosureUrl: `https://img.europapress.es/fotoweb/fotonoticia_${slug}_120.jpg`,
+    guid: link,
+    publishedAt: Date.UTC(2026, 10, 24, 8),
+    category: 'Internacional',
+    ...overrides,
+  };
+}
+
+export const NEWS_FEED_XML = `<?xml version="1.0" encoding="utf-8"?>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+<channel>
+<title>Europa Press - Internacional</title>
+<item>
+<title>Diez años del acuerdo de paz en Colombia</title>
+<link>https://www.europapress.es/internacional/noticia-colombia-20261124083249.html</link>
+<description> La última década ha estado marcada por "la incapacidad" &amp; la violencia</description>
+<enclosure url="https://img.europapress.es/fotoweb/fotonoticia_20261124083249_120.jpg" length="4096" type="image/jpeg"/>
+<guid isPermaLink="true">https://www.europapress.es/internacional/noticia-colombia-20261124083249.html</guid>
+<pubDate>Tue, 24 Nov 2026 07:32:49 GMT</pubDate>
+<category>Internacional</category>
+</item>
+<item>
+<title>Noticia sin imagen</title>
+<link>https://www.europapress.es/internacional/noticia-sin-imagen.html</link>
+<description>No trae enclosure</description>
+<pubDate>Tue, 24 Nov 2026 07:00:00 GMT</pubDate>
+<category>Internacional</category>
+</item>
+<item>
+<title>Noticia con fecha rota</title>
+<link>https://www.europapress.es/internacional/noticia-fecha-rota.html</link>
+<description>Fecha inválida</description>
+<enclosure url="https://img.europapress.es/fotoweb/fotonoticia_1_120.jpg" length="4096" type="image/jpeg"/>
+<pubDate>no es una fecha</pubDate>
+<category>Internacional</category>
+</item>
+</channel>
+</rss>`;

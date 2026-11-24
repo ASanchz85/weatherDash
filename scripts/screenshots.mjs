@@ -3,6 +3,7 @@
 // y comprueba scroll, desbordes, solapes y el recorte (aspect-ratio) de la imagen del hero.
 //
 // Uso: npm run screenshots -- [--label=baseline] [--url=http://localhost:3000] [--query=page=1] [--out=/tmp/weatherdash-screenshots]
+// La vista de noticias se captura con --query=feed=national (o international, markets).
 // Requiere la app sirviéndose (npm run start tras npm run build, o npm run dev con --url=http://localhost:5173).
 // Variables opcionales: CHROME_BIN, PORT, SCREENSHOT_URL.
 import { spawn } from 'node:child_process';
@@ -22,8 +23,10 @@ const VIEWPORTS = [
   { width: 1080, height: 1920, strictCrop: false },
 ];
 
-const HERO_SELECTOR = 'section[aria-label="Fecha y hora"]';
-const DASHBOARD_SELECTOR = 'main';
+const NEWS_HERO_SELECTOR = 'section[aria-label="Noticia destacada"]';
+const HERO_SELECTOR = `section[aria-label="Fecha y hora"], ${NEWS_HERO_SELECTOR}`;
+// La rejilla del dashboard cuelga de la vista rotatoria que envuelve main.
+const DASHBOARD_SELECTOR = 'main > div > div';
 /** Recorte máximo tolerado de la imagen del hero con background-size: cover. */
 const MAX_CROP_RATIO = 0.25;
 const READY_TIMEOUT_MS = 8000;
@@ -287,7 +290,7 @@ function evaluate(metrics, strictCrop) {
     crops.push(crop);
     if (crop.crop > MAX_CROP_RATIO) {
       const message = `recorte de la imagen «${layer.name}» ${(crop.crop * 100).toFixed(1)}% (máx. ${MAX_CROP_RATIO * 100}%)`;
-      (strictCrop ? problems : warnings).push(message);
+      (strictCrop && layer.name !== 'custom' ? problems : warnings).push(message);
     }
   }
 
@@ -304,7 +307,8 @@ async function captureViewport(page, viewport) {
   await page.send('Page.navigate', { url: pageUrl });
   await loaded;
 
-  const ready = `document.fonts.ready.then(() => !document.querySelector('[aria-busy="true"]'))`;
+  const readySelector = /(^|&)feed=/.test(options.query) ? NEWS_HERO_SELECTOR : HERO_SELECTOR;
+  const ready = `document.fonts.ready.then(() => !document.querySelector('[aria-busy="true"]') && !!document.querySelector(${JSON.stringify(readySelector)}))`;
   await waitFor(
     async () => (await page.send('Runtime.evaluate', { expression: ready, awaitPromise: true })).result.value,
     READY_TIMEOUT_MS,

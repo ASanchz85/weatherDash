@@ -11,12 +11,12 @@ import {
 
 import { Metric } from '../../components/Metric';
 import type { WeatherData } from '../../types/weather';
+import { Temperature } from './Temperature';
 import styles from './WeatherDetails.module.css';
 import { WeatherIcon } from './WeatherIcon';
 import {
   formatLocalTime,
   formatPercentage,
-  formatTemperature,
   formatUpdatedAt,
   formatWindSpeed,
 } from './weatherFormat';
@@ -50,7 +50,7 @@ export function WeatherDetails({ data, refreshFailed }: WeatherDetailsProps) {
           <WeatherIcon name={current.icon} isDay={current.isDay} className={styles.conditionIcon} />
           <div>
             <p className={styles.temperature}>
-              {formatTemperature(current.temperature)}
+              <Temperature value={current.temperature} />
               <span className={styles.unit}>C</span>
             </p>
             <p className={styles.description}>{current.description}</p>
@@ -60,11 +60,11 @@ export function WeatherDetails({ data, refreshFailed }: WeatherDetailsProps) {
         <p className={styles.range}>
           <span className={styles.rangeItem}>
             <ArrowUp className={styles.rangeIcon} aria-hidden="true" />
-            Máx {formatTemperature(daily.temperatureMax)}
+            Máx <Temperature value={daily.temperatureMax} />
           </span>
           <span className={styles.rangeItem}>
             <ArrowDown className={styles.rangeIcon} aria-hidden="true" />
-            Mín {formatTemperature(daily.temperatureMin)}
+            Mín <Temperature value={daily.temperatureMin} />
           </span>
           <span className={styles.rangeItem}>
             <Sun className={styles.sunIcon} aria-hidden="true" />
@@ -83,7 +83,7 @@ export function WeatherDetails({ data, refreshFailed }: WeatherDetailsProps) {
         <Metric
           icon={Thermometer}
           label="Sensación"
-          value={formatTemperature(current.apparentTemperature)}
+          value={<Temperature value={current.apparentTemperature} />}
           highlighted
         />
         <Metric icon={Droplets} label="Humedad" value={formatPercentage(current.relativeHumidity)} />

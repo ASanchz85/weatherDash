@@ -38,11 +38,28 @@ describe('WeeklyForecast', () => {
     expect(within(tomorrow).getByText('65%')).toBeInTheDocument();
   });
 
-  it('destaca en azul los días con lluvia y en naranja los soleados', () => {
-    render(<WeeklyForecast state={{ status: 'ready', data: buildWeatherData(), refreshFailed: false }} />);
+  it('destaca en azul los iconos de los días con lluvia y en naranja los soleados', () => {
+    const { container } = render(
+      <WeeklyForecast state={{ status: 'ready', data: buildWeatherData(), refreshFailed: false }} />,
+    );
 
-    const tones = screen.getAllByRole('listitem').map((day) => day.getAttribute('data-tone'));
+    const tones = [...container.querySelectorAll('svg[data-tone]')].map((icon) => icon.getAttribute('data-tone'));
     expect(tones).toEqual(['neutral', 'rain', 'neutral', 'sun', 'sun', 'neutral', 'neutral']);
+  });
+
+  it('colorea las temperaturas según su tramo y deja en blanco las intermedias', () => {
+    const data = buildWeatherData();
+    const [first, ...rest] = data.forecast;
+    data.forecast = [{ ...first!, temperatureMax: 38, temperatureMin: -2 }, ...rest];
+    render(<WeeklyForecast state={{ status: 'ready', data, refreshFailed: false }} />);
+
+    const today = screen.getAllByRole('listitem')[0]!;
+    expect(within(today).getByText('38°')).toHaveAttribute('data-temperature-tone', 'hot');
+    expect(within(today).getByText('-2°')).toHaveAttribute('data-temperature-tone', 'freezing');
+    // 11° de máxima el día siguiente cae en el tramo azul; 2° de mínima, en el azul oscuro.
+    const tomorrow = screen.getAllByRole('listitem')[1]!;
+    expect(within(tomorrow).getByText('11°')).toHaveAttribute('data-temperature-tone', 'cool');
+    expect(within(tomorrow).getByText('2°')).toHaveAttribute('data-temperature-tone', 'cold');
   });
 
   it('muestra «—» cuando faltan valores', () => {

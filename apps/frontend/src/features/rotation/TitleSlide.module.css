@@ -1,0 +1,29 @@
+.slide {
+  height: 100%;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-page);
+}
+
+.title {
+  position: relative;
+  padding-bottom: 0.3em;
+  font-size: clamp(2.5rem, 12vmin, 9rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-align: center;
+}
+
+/* Barra de acento bajo el título */
+.title::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 2.4em;
+  height: 0.06em;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  transform: translateX(-50%);
+}

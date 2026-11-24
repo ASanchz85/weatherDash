@@ -14,6 +14,14 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 8000;
 const MIN_REFRESH_INTERVAL_MS = 60 * 1000;
 const DEFAULT_ROTATION_INTERVAL_MS = 5 * 60 * 1000;
 const MIN_ROTATION_INTERVAL_MS = 10 * 1000;
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const DEFAULT_NEWS_ITEM_DURATION_MS = 60 * 1000;
+const MIN_NEWS_ITEM_DURATION_MS = 5 * 1000;
+const DEFAULT_NEWS_FEED_URLS = {
+  national: 'https://www.europapress.es/rss/rss.aspx?ch=66',
+  international: 'https://www.europapress.es/rss/rss.aspx?ch=69',
+  markets: 'https://www.europapress.es/rss/rss.aspx?ch=136',
+} as const;
 
 /** Las variables vacías en .env se tratan como no definidas. */
 function blankToUndefined(value: unknown): unknown {
@@ -23,6 +31,7 @@ function blankToUndefined(value: unknown): unknown {
 const optionalText = z.preprocess(blankToUndefined, z.string().trim().min(1).optional());
 const optionalCoordinate = (min: number, max: number) =>
   z.preprocess(blankToUndefined, z.coerce.number().min(min).max(max).optional());
+const feedUrl = (fallback: string) => z.preprocess(blankToUndefined, z.url().default(fallback));
 
 const envSchema = z
   .object({
@@ -60,6 +69,17 @@ const envSchema = z
       .refine((value) => value === 0 || value >= MIN_ROTATION_INTERVAL_MS, {
         message: `debe ser 0 (desactivada) o al menos ${MIN_ROTATION_INTERVAL_MS} ms`,
       }),
+    UI_NEWS_ITEM_DURATION: z.preprocess(
+      blankToUndefined,
+      z.coerce.number().int().min(MIN_NEWS_ITEM_DURATION_MS).default(DEFAULT_NEWS_ITEM_DURATION_MS),
+    ),
+    NEWS_FEED_NATIONAL_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.national),
+    NEWS_FEED_INTERNATIONAL_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.international),
+    NEWS_FEED_MARKETS_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.markets),
+    NEWS_REFRESH_INTERVAL: z.preprocess(
+      blankToUndefined,
+      z.coerce.number().int().min(MIN_REFRESH_INTERVAL_MS).default(ONE_HOUR_MS),
+    ),
   })
   .refine((env) => (env.WEATHER_LATITUDE === undefined) === (env.WEATHER_LONGITUDE === undefined), {
     message: 'WEATHER_LATITUDE y WEATHER_LONGITUDE deben definirse juntas o dejarse ambas vacías',
@@ -87,6 +107,14 @@ export interface WeatherConfig {
 export interface UiConfig {
   /** Tiempo entre cambios de vista en la interfaz; 0 desactiva la rotación. */
   rotationIntervalMs: number;
+  /** Tiempo que cada noticia permanece resaltada en el hero. */
+  newsItemDurationMs: number;
+}
+
+export interface NewsConfig {
+  feedUrls: { national: string; international: string; markets: string };
+  refreshIntervalMs: number;
+  requestTimeoutMs: number;
 }
 
 export interface AppConfig {
@@ -98,6 +126,7 @@ export interface AppConfig {
   /** Ruta absoluta del fichero SQLite donde se conserva la última información obtenida. */
   databasePath: string;
   weather: WeatherConfig;
+  news: NewsConfig;
   ui: UiConfig;
 }
 
@@ -137,6 +166,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       refreshIntervalMs: parsed.WEATHER_REFRESH_INTERVAL,
       requestTimeoutMs: parsed.WEATHER_REQUEST_TIMEOUT,
     },
-    ui: { rotationIntervalMs: parsed.UI_ROTATION_INTERVAL },
+    news: {
+      feedUrls: {
+        national: parsed.NEWS_FEED_NATIONAL_URL,
+        international: parsed.NEWS_FEED_INTERNATIONAL_URL,
+        markets: parsed.NEWS_FEED_MARKETS_URL,
+      },
+      refreshIntervalMs: parsed.NEWS_REFRESH_INTERVAL,
+      requestTimeoutMs: parsed.WEATHER_REQUEST_TIMEOUT,
+    },
+    ui: {
+      rotationIntervalMs: parsed.UI_ROTATION_INTERVAL,
+      newsItemDurationMs: parsed.UI_NEWS_ITEM_DURATION,
+    },
   };
 }

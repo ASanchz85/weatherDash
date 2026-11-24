@@ -18,6 +18,19 @@ const MIGRATIONS: readonly string[] = [
      payload    TEXT    NOT NULL,
      fetched_at INTEGER NOT NULL
    ) STRICT`,
+  `CREATE TABLE news (
+     id              INTEGER PRIMARY KEY AUTOINCREMENT,
+     feed            TEXT    NOT NULL CHECK (feed IN ('national', 'international', 'markets')),
+     title           TEXT    NOT NULL,
+     link            TEXT    NOT NULL UNIQUE,
+     description     TEXT    NOT NULL,
+     enclosure_url   TEXT    NOT NULL,
+     guid            TEXT    NOT NULL,
+     pub_date        INTEGER NOT NULL,
+     category        TEXT    NOT NULL,
+     has_been_shown  INTEGER NOT NULL DEFAULT 0 CHECK (has_been_shown IN (0, 1))
+   ) STRICT;
+   CREATE INDEX news_feed_pub_date ON news (feed, pub_date DESC)`,
 ];
 
 /** Abre (o crea) la base de datos y aplica las migraciones pendientes. */

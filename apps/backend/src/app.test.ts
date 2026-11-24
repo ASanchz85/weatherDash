@@ -4,8 +4,9 @@ import { buildApp, type BuildAppOptions } from './app.js';
 import { IN_MEMORY_DATABASE, openDatabase } from './database/database.js';
 import { createSqliteSnapshotStorage } from './database/sqlite-snapshot-storage.js';
 import type { AirQualityProvider } from './modules/air-quality/air-quality.provider.js';
+import { createNewsRepository } from './modules/news/news.repository.js';
 import type { WeatherProvider } from './modules/weather/weather.provider.js';
-import { buildAirQuality, buildSnapshot, weatherConfig } from './test/fixtures.js';
+import { buildAirQuality, buildNewsItem, buildSnapshot, weatherConfig } from './test/fixtures.js';
 
 const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 
@@ -18,7 +19,7 @@ async function createTestApp(
 ) {
   const app = await buildApp({
     weatherConfig: { ...weatherConfig, coordinates: { latitude: 40.41, longitude: -4.71 } },
-    uiConfig: { rotationIntervalMs: 300000 },
+    uiConfig: { rotationIntervalMs: 300000, newsItemDurationMs: 60000 },
     weatherProvider: { geocode: vi.fn(), fetchForecast },
     airQualityProvider: { fetchAirQuality },
     staticDir: null,
@@ -42,13 +43,13 @@ describe('API REST', () => {
     expect(response.json()).toEqual({ status: 'ok' });
   });
 
-  it('GET /api/config expone el intervalo de rotación de la interfaz', async () => {
+  it('GET /api/config expone los tiempos de rotación de la interfaz', async () => {
     const app = await createTestApp(vi.fn());
     const response = await app.inject({ method: 'GET', url: '/api/config' });
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['cache-control']).toBe('no-store');
-    expect(response.json()).toEqual({ rotationIntervalMs: 300000 });
+    expect(response.json()).toEqual({ rotationIntervalMs: 300000, newsItemDurationMs: 60000 });
   });
 
   it('GET /api/weather devuelve la información normalizada', async () => {
@@ -133,5 +134,60 @@ describe('API REST', () => {
       updatedAt: '2026-11-23T10:00:00.000Z',
       stale: true,
     });
+  });
+});
+
+describe('API de noticias', () => {
+  async function createNewsApp() {
+    const database = openDatabase(IN_MEMORY_DATABASE);
+    const repository = createNewsRepository(database);
+    repository.saveItems('national', [buildNewsItem('a'), buildNewsItem('b', { publishedAt: Date.UTC(2026, 10, 24, 9) })]);
+    const app = await buildApp({
+      weatherConfig,
+      uiConfig: { rotationIntervalMs: 300000, newsItemDurationMs: 60000 },
+      weatherProvider: { geocode: vi.fn(), fetchForecast: vi.fn() },
+      airQualityProvider: { fetchAirQuality: vi.fn() },
+      news: {
+        config: {
+          feedUrls: { national: 'https://x/n', international: 'https://x/i', markets: 'https://x/m' },
+          refreshIntervalMs: 3600000,
+          requestTimeoutMs: 8000,
+        },
+        provider: { fetchFeed: vi.fn() },
+        repository,
+      },
+      staticDir: null,
+      now: () => NOW,
+    });
+    apps.push(app);
+    app.addHook('onClose', async () => database.close());
+    return app;
+  }
+
+  it('POST /api/news/:feed/rotation entrega las noticias del feed y las marca como mostradas', async () => {
+    const app = await createNewsApp();
+
+    const first = await app.inject({ method: 'POST', url: '/api/news/national/rotation' });
+    const markets = await app.inject({ method: 'POST', url: '/api/news/markets/rotation' });
+
+    expect(first.statusCode).toBe(200);
+    expect(first.headers['cache-control']).toBe('no-store');
+    expect(first.json()).toMatchObject({
+      feed: 'national',
+      items: [
+        { title: 'Titular b', publishedAt: '2026-11-24T09:00:00.000Z' },
+        { title: 'Titular a', category: 'Internacional' },
+      ],
+    });
+    expect(markets.json()).toEqual({ feed: 'markets', items: [] });
+  });
+
+  it('POST /api/news/:feed/rotation responde 404 para un feed desconocido', async () => {
+    const app = await createNewsApp();
+
+    const response = await app.inject({ method: 'POST', url: '/api/news/deportes/rotation' });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({ error: 'NEWS_FEED_NOT_FOUND' });
   });
 });

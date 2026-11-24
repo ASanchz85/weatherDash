@@ -26,17 +26,13 @@
   background: color-mix(in srgb, var(--color-rain) 55%, transparent);
 }
 
-/* Cada hora ocupa una columna completa para poder resaltar las soleadas */
+/* Cada hora ocupa una columna completa para alinear su barra de lluvia */
 .slot {
   display: flex;
   align-items: flex-end;
   justify-content: center;
   width: 100%;
   height: 100%;
-}
-
-.slot[data-tone='sun'] {
-  background: color-mix(in srgb, var(--color-accent) 11%, transparent);
 }
 
 .line {
@@ -74,14 +70,6 @@
   box-shadow: 0 0 0 3px rgb(255 255 255 / 0.22);
 }
 
-.marker[data-tone='sun'] .dot {
-  background: var(--color-accent);
-}
-
-.now[data-tone='sun'] .dot {
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
-}
-
 .temperature {
   position: absolute;
   bottom: 100%;
@@ -90,10 +78,6 @@
   transform: translateX(-50%);
   font-weight: 700;
   white-space: nowrap;
-}
-
-.marker[data-tone='sun'] .temperature {
-  color: var(--color-accent);
 }
 
 .legend {
@@ -108,8 +92,7 @@
 }
 
 .legendLine,
-.legendRain,
-.legendSun {
+.legendRain {
   display: inline-flex;
   align-items: center;
   gap: 0.5em;
@@ -129,14 +112,6 @@
   height: 0.9em;
   border-radius: 2px;
   background: color-mix(in srgb, var(--color-rain) 55%, transparent);
-}
-
-.legendSun::before {
-  content: '';
-  width: 0.9em;
-  height: 0.9em;
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--color-accent) 40%, transparent);
 }
 
 .hours {

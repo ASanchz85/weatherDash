@@ -1,20 +1,13 @@
-.dashboard {
+.root {
   height: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 2.1fr) minmax(320px, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: var(--space-gap);
-  padding: var(--space-page);
+  /* El desplazamiento vertical del fundido no debe provocar scroll en la página */
   overflow: hidden;
 }
 
-/* En vertical se apilan los paneles y se permite desplazamiento si el contenido no cabe */
 @media (orientation: portrait) {
-  .dashboard {
+  .root {
     height: auto;
     min-height: 100%;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(38vh, 1fr) auto auto;
     overflow: visible;
   }
 }

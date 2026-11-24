@@ -1,12 +1,16 @@
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
-import type { UiConfig, WeatherConfig } from './config/env.js';
+import type { NewsConfig, UiConfig, WeatherConfig } from './config/env.js';
 import type { AirQualityProvider } from './modules/air-quality/air-quality.provider.js';
 import { airQualityRoutes } from './modules/air-quality/air-quality.routes.js';
 import { createAirQualityService } from './modules/air-quality/air-quality.service.js';
 import type { AirQualitySnapshot } from './modules/air-quality/air-quality.types.js';
 import { healthRoutes } from './modules/health/health.routes.js';
 import { createLocationService } from './modules/location/location.service.js';
+import type { NewsProvider } from './modules/news/news.provider.js';
+import type { NewsRepository } from './modules/news/news.repository.js';
+import { newsRoutes } from './modules/news/news.routes.js';
+import { createNewsService } from './modules/news/news.service.js';
 import { uiRoutes } from './modules/ui/ui.routes.js';
 import type { WeatherProvider } from './modules/weather/weather.provider.js';
 import { weatherRoutes } from './modules/weather/weather.routes.js';
@@ -15,11 +19,23 @@ import type { WeatherSnapshot } from './modules/weather/weather.types.js';
 import { staticFrontend } from './plugins/static.js';
 import type { SnapshotStorage } from './shared/snapshot-store.js';
 
+const DEFAULT_NEWS_TIME_ZONE = 'Europe/Madrid';
+
+export interface NewsOptions {
+  config: NewsConfig;
+  provider: NewsProvider;
+  repository: NewsRepository;
+  /** Consulta los feeds al arrancar y después cada `config.refreshIntervalMs`. */
+  autoRefresh?: boolean;
+}
+
 export interface BuildAppOptions {
   weatherConfig: WeatherConfig;
   uiConfig: UiConfig;
   weatherProvider: WeatherProvider;
   airQualityProvider: AirQualityProvider;
+  /** Sin esta opción el módulo de noticias queda desactivado. */
+  news?: NewsOptions;
   /** Persistencia de la última información obtenida; sin ella, los datos solo viven en memoria. */
   snapshotStorage?: SnapshotStorage;
   /** Directorio del frontend compilado; null para no servir estáticos (desarrollo y tests). */
@@ -35,6 +51,7 @@ export async function buildApp({
   uiConfig,
   weatherProvider,
   airQualityProvider,
+  news,
   snapshotStorage,
   staticDir,
   prefetchWeather = false,
@@ -70,6 +87,30 @@ export async function buildApp({
   await app.register(uiRoutes, { uiConfig });
   await app.register(weatherRoutes, { weatherService });
   await app.register(airQualityRoutes, { airQualityService });
+
+  if (news) {
+    const newsService = createNewsService({
+      provider: news.provider,
+      repository: news.repository,
+      feedUrls: news.config.feedUrls,
+      timeZone: weatherConfig.timezone ?? DEFAULT_NEWS_TIME_ZONE,
+      logger: app.log,
+      ...clock,
+    });
+    await app.register(newsRoutes, { newsService });
+
+    if (news.autoRefresh) {
+      let timer: NodeJS.Timeout | undefined;
+      app.addHook('onReady', async () => {
+        // Los fallos ya los registra el servicio; el servidor arranca igualmente.
+        const refresh = () => void newsService.refresh().catch(() => undefined);
+        refresh();
+        timer = setInterval(refresh, news.config.refreshIntervalMs);
+        timer.unref();
+      });
+      app.addHook('onClose', async () => clearInterval(timer));
+    }
+  }
   if (staticDir) await app.register(staticFrontend, { root: staticDir });
 
   if (prefetchWeather) {

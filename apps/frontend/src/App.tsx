@@ -1,57 +1,48 @@
 import { useState } from 'react';
 
 import styles from './App.module.css';
-import { ForecastPanel } from './components/ForecastPanel';
-import { HeroPanel } from './components/HeroPanel';
-import { SidePanel } from './components/SidePanel';
-import { Clock } from './features/clock/Clock';
 import { useDashboardData } from './features/dashboard/useDashboardData';
-import { HourlyForecast } from './features/forecast/HourlyForecast';
-import { WeeklyForecast } from './features/forecast/WeeklyForecast';
+import { WEATHER_PAGE_COUNT, WeatherDashboard } from './features/dashboard/WeatherDashboard';
+import { NewsDashboard } from './features/news/NewsDashboard';
 import { parseDebugOverrides } from './features/rotation/debugOverrides';
 import { RotatingView, type RotatingViewItem } from './features/rotation/RotatingView';
-import { useRotation } from './features/rotation/useRotation';
-import { useRotationInterval } from './features/rotation/useRotationInterval';
+import { TitleSlide } from './features/rotation/TitleSlide';
+import { useDashboardCycle, type CycleView } from './features/rotation/useDashboardCycle';
+import { useUiConfig } from './features/rotation/useUiConfig';
 import { useCommittedTheme } from './features/theme/useCommittedTheme';
-import { WeatherPanel } from './features/weather/WeatherPanel';
-import { WindAirPanel } from './features/wind-air/WindAirPanel';
 import { themeFromIsDay } from './types/theme';
+
+const VIEW_ORDER: readonly CycleView[] = ['weather', 'slide', 'news'];
 
 export function App() {
   // Los datos se piden aquí, fuera de las vistas rotatorias, para que rotar nunca provoque una consulta.
   const { weather, airQuality } = useDashboardData();
-  const rotationIntervalMs = useRotationInterval();
+  const uiConfig = useUiConfig();
   const [overrides] = useState(() => parseDebugOverrides(window.location.search));
 
-  const sideViews: RotatingViewItem[] = [
-    { id: 'weather', content: <WeatherPanel state={weather} /> },
-    { id: 'wind-air', content: <WindAirPanel weather={weather} airQuality={airQuality} /> },
-  ];
-  const bottomViews: RotatingViewItem[] = [
-    { id: 'weekly', content: <WeeklyForecast state={weather} /> },
-    { id: 'hourly', content: <HourlyForecast state={weather} /> },
-  ];
-
-  const { page, tick, isRotating } = useRotation(
-    Math.max(sideViews.length, bottomViews.length),
-    rotationIntervalMs,
-    overrides.page,
-  );
+  const cycle = useDashboardCycle({
+    weatherPageCount: WEATHER_PAGE_COUNT,
+    uiConfig,
+    pinnedPage: overrides.page,
+    pinnedFeed: overrides.feed,
+  });
   const desiredTheme = weather.status === 'ready' ? themeFromIsDay(weather.data.current.isDay) : null;
-  const committedTheme = useCommittedTheme(desiredTheme, tick, isRotating);
+  const committedTheme = useCommittedTheme(desiredTheme, cycle.tick, cycle.isRotating);
   const theme = overrides.theme ?? committedTheme;
 
+  // Todas las vistas se declaran siempre para que la saliente se siga dibujando durante su fundido.
+  const views: RotatingViewItem[] = [
+    {
+      id: 'weather',
+      content: <WeatherDashboard weather={weather} airQuality={airQuality} page={cycle.weatherPage} theme={theme} />,
+    },
+    { id: 'slide', content: <TitleSlide title={cycle.slideTitle} /> },
+    { id: 'news', content: cycle.news && <NewsDashboard news={cycle.news} weather={weather} /> },
+  ];
+
   return (
-    <main className={styles.dashboard}>
-      <HeroPanel label="Fecha y hora" theme={theme}>
-        <Clock />
-      </HeroPanel>
-      <SidePanel label="Meteorología">
-        <RotatingView views={sideViews} page={page} />
-      </SidePanel>
-      <ForecastPanel label="Predicción">
-        <RotatingView views={bottomViews} page={page} />
-      </ForecastPanel>
+    <main className={styles.root}>
+      <RotatingView views={views} page={VIEW_ORDER.indexOf(cycle.view)} />
     </main>
   );
 }

@@ -7,6 +7,12 @@ export class ConfigApiError extends Error {
 export interface UiConfig {
   /** Tiempo entre cambios de vista; 0 indica que la rotación está desactivada. */
   rotationIntervalMs: number;
+  /** Tiempo que cada noticia permanece resaltada. */
+  newsItemDurationMs: number;
+}
+
+function isNonNegativeNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
 
 export function parseUiConfig(value: unknown): UiConfig {
@@ -14,10 +20,11 @@ export function parseUiConfig(value: unknown): UiConfig {
     throw new ConfigApiError('Configuración de interfaz con formato inesperado');
   }
   const { rotationIntervalMs } = value;
-  if (typeof rotationIntervalMs !== 'number' || !Number.isFinite(rotationIntervalMs) || rotationIntervalMs < 0) {
+  const newsItemDurationMs = 'newsItemDurationMs' in value ? value.newsItemDurationMs : undefined;
+  if (!isNonNegativeNumber(rotationIntervalMs) || !(typeof newsItemDurationMs === 'number' && newsItemDurationMs > 0)) {
     throw new ConfigApiError('Configuración de interfaz con formato inesperado');
   }
-  return { rotationIntervalMs };
+  return { rotationIntervalMs, newsItemDurationMs };
 }
 
 export async function fetchUiConfig(signal?: AbortSignal): Promise<UiConfig> {

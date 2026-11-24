@@ -1,0 +1,7 @@
+.heroSlot {
+  min-height: 0;
+}
+
+.heroSlot section {
+  height: 100%;
+}

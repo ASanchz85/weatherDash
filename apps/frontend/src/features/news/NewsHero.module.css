@@ -1,0 +1,44 @@
+.article {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 2cqi, 28px);
+  max-width: 100%;
+  text-shadow: 0 2px 18px rgb(0 0 0 / 0.55);
+}
+
+.title {
+  font-size: clamp(1.5rem, 4.6cqi, 3.6rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6em;
+  font-size: clamp(0.85rem, 2cqi, 1.5rem);
+  font-weight: 700;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Separado del titular y con un tamaño claramente menor para diferenciar ambos niveles de lectura */
+.description {
+  margin-top: clamp(4px, 1.2cqi, 20px);
+  font-size: clamp(0.95rem, 2.2cqi, 1.7rem);
+  line-height: 1.5;
+  color: rgb(242 244 248 / 0.9);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+  overflow: hidden;
+}

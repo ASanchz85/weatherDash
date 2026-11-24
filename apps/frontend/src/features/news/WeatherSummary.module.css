@@ -1,0 +1,79 @@
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: clamp(8px, 2cqi, 32px);
+  min-height: var(--forecast-content-height);
+}
+
+/* Cada bloque es su propio contenedor: el reloj y los textos escalan con su ancho, no con el de la franja */
+.block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 4cqi, 28px);
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: calc(var(--forecast-content-height) * 0.75);
+  height: calc(var(--forecast-content-height) * 0.75);
+  color: var(--color-text);
+}
+
+.icon[data-tone='sun'] {
+  color: var(--color-accent);
+}
+
+.icon[data-tone='rain'] {
+  color: var(--color-rain);
+}
+
+.rose {
+  flex-shrink: 0;
+  width: var(--forecast-content-height);
+  height: var(--forecast-content-height);
+}
+
+.text {
+  min-width: 0;
+}
+
+.temperature {
+  font-size: clamp(2.2rem, 15cqi, 5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.unit {
+  margin-left: 0.15em;
+  font-size: 0.4em;
+  font-weight: 400;
+  letter-spacing: 0;
+  vertical-align: 0.95em;
+  color: var(--color-text-muted);
+}
+
+.speedUnit {
+  margin-left: 0.3em;
+  font-size: 0.3em;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+}
+
+.detail {
+  margin-top: clamp(4px, 0.8vmin, 10px);
+  font-size: clamp(0.8rem, 4cqi, 1.2rem);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.message {
+  grid-column: 2 / -1;
+  text-align: center;
+  color: var(--color-text-muted);
+}
