@@ -58,22 +58,24 @@ describe('HourlyForecast', () => {
     expect(bars[2]!.style.height).toBe('18%');
   });
 
-  it('resalta las horas soleadas, y solo esas, en cada columna', () => {
+  it('no resalta las horas soleadas ni muestra el sol en la leyenda', () => {
     render(<HourlyForecast state={ready()} />);
 
-    const tones = screen.getAllByTestId('hourly-slot').map((slot) => slot.getAttribute('data-tone'));
-    expect(tones).toHaveLength(24);
-    expect(tones.filter((tone) => tone === 'sun')).toHaveLength(3);
-    expect(tones.slice(13, 16)).toEqual(['sun', 'sun', 'sun']);
-    expect(tones.filter((tone) => tone === 'rain')).toHaveLength(2);
+    const slots = screen.getAllByTestId('hourly-slot');
+    expect(slots).toHaveLength(24);
+    expect(slots.every((slot) => !slot.hasAttribute('data-tone'))).toBe(true);
+    expect(screen.queryByText('Sol')).not.toBeInTheDocument();
   });
 
-  it('no resalta como soleada una hora despejada de noche', () => {
-    const hourly = buildHourly().map((hour) => ({ ...hour, icon: 'clear' as const, isDay: false }));
+  it('colorea la temperatura de cada hora rotulada según su tramo', () => {
+    const hourly = buildHourly().map((hour, index) => ({ ...hour, temperature: index === 0 ? 31 : index === 3 ? -1 : 18 }));
     render(<HourlyForecast state={ready({ hourly })} />);
 
-    const tones = screen.getAllByTestId('hourly-slot').map((slot) => slot.getAttribute('data-tone'));
-    expect(new Set(tones)).toEqual(new Set(['neutral']));
+    const labels = screen.getAllByTestId('hourly-temperature');
+    expect(labels[0]).toHaveAttribute('data-temperature-tone', 'warm');
+    expect(labels[1]).toHaveAttribute('data-temperature-tone', 'freezing');
+    expect(labels[2]).toHaveAttribute('data-temperature-tone', 'neutral');
+    expect(labels[2]).not.toHaveAttribute('style');
   });
 
   it('explica los colores en la leyenda', () => {
@@ -81,7 +83,6 @@ describe('HourlyForecast', () => {
 
     expect(screen.getByText('Temperatura')).toBeInTheDocument();
     expect(screen.getByText('Lluvia')).toBeInTheDocument();
-    expect(screen.getByText('Sol')).toBeInTheDocument();
   });
 
   it('corta la línea en los huecos de datos', () => {

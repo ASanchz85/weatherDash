@@ -57,10 +57,6 @@
   font-weight: 700;
 }
 
-.day[data-tone='sun'] .max {
-  color: var(--color-accent);
-}
-
 .min {
   color: var(--color-text-muted);
 }

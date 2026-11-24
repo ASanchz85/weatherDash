@@ -1,9 +1,9 @@
 import { Umbrella } from 'lucide-react';
 
 import type { DailyForecast } from '../../types/weather';
+import { Temperature } from '../weather/Temperature';
 import { WeatherIcon } from '../weather/WeatherIcon';
-import { formatPercentage, formatTemperature } from '../weather/weatherFormat';
-import { weatherTone } from '../weather/weatherTone';
+import { formatPercentage } from '../weather/weatherFormat';
 import type { WeatherState } from '../dashboard/useDashboardData';
 import styles from './WeeklyForecast.module.css';
 import { formatWeekdayShort } from './forecastFormat';
@@ -19,18 +19,15 @@ interface ForecastDayProps {
 
 function ForecastDay({ day, isToday }: ForecastDayProps) {
   return (
-    <li
-      className={isToday ? `${styles.day} ${styles.today}` : styles.day}
-      data-tone={weatherTone(day.icon, true)}
-    >
+    <li className={isToday ? `${styles.day} ${styles.today}` : styles.day}>
       <time className={styles.weekday} dateTime={day.date}>
         {isToday ? 'Hoy' : formatWeekdayShort(day.date)}
       </time>
       <WeatherIcon name={day.icon} isDay className={styles.icon} />
       <span className={styles.srOnly}>{day.description}</span>
       <p className={styles.temperatures}>
-        <span className={styles.max}>{formatTemperature(day.temperatureMax)}</span>
-        <span className={styles.min}>{formatTemperature(day.temperatureMin)}</span>
+        <Temperature value={day.temperatureMax} className={styles.max} />
+        <Temperature value={day.temperatureMin} className={styles.min} />
       </p>
       <p className={styles.rain}>
         <Umbrella className={styles.rainIcon} strokeWidth={1.75} aria-hidden="true" />

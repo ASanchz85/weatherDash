@@ -1,8 +1,9 @@
 import { ForecastPanel } from '../../components/ForecastPanel';
 import { Clock } from '../clock/Clock';
 import type { WeatherState } from '../dashboard/useDashboardData';
+import { Temperature } from '../weather/Temperature';
 import { WeatherIcon } from '../weather/WeatherIcon';
-import { formatTemperature, formatWindSpeed } from '../weather/weatherFormat';
+import { formatWindSpeed } from '../weather/weatherFormat';
 import { WindRose } from '../wind-air/WindRose';
 import { formatWindDirection } from '../wind-air/windAirFormat';
 import styles from './WeatherSummary.module.css';
@@ -33,7 +34,7 @@ export function WeatherSummary({ state }: { state: WeatherState }) {
               />
               <div className={styles.text}>
                 <p className={styles.temperature}>
-                  {formatTemperature(state.data.current.temperature)}
+                  <Temperature value={state.data.current.temperature} />
                   <span className={styles.unit}>C</span>
                 </p>
                 <p className={styles.detail}>{state.data.current.description}</p>

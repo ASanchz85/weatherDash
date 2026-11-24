@@ -26,8 +26,8 @@ describe('WeatherPanel', () => {
     expect(screen.getByRole('heading', { name: 'Navaluenga' })).toBeInTheDocument();
     expect(screen.getByText('Parcialmente nuboso')).toBeInTheDocument();
     expect(screen.getByText('8°')).toBeInTheDocument();
-    expect(screen.getByText('Máx 12°')).toBeInTheDocument();
-    expect(screen.getByText('Mín 1°')).toBeInTheDocument();
+    expect(screen.getByText('Máx', { exact: false })).toHaveTextContent('Máx 12°');
+    expect(screen.getByText('Mín', { exact: false })).toHaveTextContent('Mín 1°');
     expect(screen.getByText('6°')).toBeInTheDocument();
     expect(screen.getByText('72%')).toBeInTheDocument();
     expect(screen.getByText('13 km/h')).toBeInTheDocument();

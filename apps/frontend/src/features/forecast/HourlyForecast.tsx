@@ -1,6 +1,6 @@
 import type { WeatherState } from '../dashboard/useDashboardData';
+import { Temperature } from '../weather/Temperature';
 import { formatTemperature } from '../weather/weatherFormat';
-import { weatherTone } from '../weather/weatherTone';
 import type { HourlyForecast as HourlyForecastData } from '../../types/weather';
 import styles from './HourlyForecast.module.css';
 import {
@@ -42,13 +42,8 @@ function HourlyChart({ hourly }: { hourly: readonly HourlyForecastData[] }) {
     >
       <div className={styles.plot}>
         <div className={styles.bars} aria-hidden="true">
-          {hourly.map(({ time, precipitationProbability, icon, isDay }) => (
-            <span
-              key={time}
-              className={styles.slot}
-              data-tone={weatherTone(icon, isDay)}
-              data-testid="hourly-slot"
-            >
+          {hourly.map(({ time, precipitationProbability }) => (
+            <span key={time} className={styles.slot} data-testid="hourly-slot">
               <span
                 className={styles.bar}
                 data-testid="hourly-bar"
@@ -64,28 +59,21 @@ function HourlyChart({ hourly }: { hourly: readonly HourlyForecastData[] }) {
           ))}
         </svg>
 
-        {points.filter(({ index }) => isLabelledHour(index)).map(({ index, x, y, temperature }) => {
-          const hour = hourly[index];
-          return (
-            <span
-              key={index}
-              className={index === 0 ? `${styles.marker} ${styles.now}` : styles.marker}
-              data-tone={hour ? weatherTone(hour.icon, hour.isDay) : 'neutral'}
-              style={{ left: `${(x / columns) * 100}%`, top: `${y}%` }}
-              aria-hidden="true"
-            >
-              <span className={styles.temperature} data-testid="hourly-temperature">
-                {formatTemperature(temperature)}
-              </span>
-              <span className={styles.dot} />
-            </span>
-          );
-        })}
+        {points.filter(({ index }) => isLabelledHour(index)).map(({ index, x, y, temperature }) => (
+          <span
+            key={index}
+            className={index === 0 ? `${styles.marker} ${styles.now}` : styles.marker}
+            style={{ left: `${(x / columns) * 100}%`, top: `${y}%` }}
+            aria-hidden="true"
+          >
+            <Temperature value={temperature} className={styles.temperature} data-testid="hourly-temperature" />
+            <span className={styles.dot} />
+          </span>
+        ))}
 
         <p className={styles.legend} aria-hidden="true">
           <span className={styles.legendLine}>Temperatura</span>
           <span className={styles.legendRain}>Lluvia</span>
-          <span className={styles.legendSun}>Sol</span>
         </p>
       </div>
 
