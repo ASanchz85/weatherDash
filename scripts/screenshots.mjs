@@ -13,14 +13,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
-// strictCrop: el recorte excesivo de la imagen es un error (resoluciones horizontales requeridas); si no, solo un aviso.
+// El recorte excesivo de la foto del hero (varía en cada carga) solo se avisa, no es un error.
 const VIEWPORTS = [
-  { width: 1920, height: 1080, strictCrop: true },
-  { width: 1366, height: 768, strictCrop: true },
-  { width: 1280, height: 720, strictCrop: true },
-  { width: 1600, height: 900, strictCrop: false },
-  { width: 1280, height: 800, strictCrop: false },
-  { width: 1080, height: 1920, strictCrop: false },
+  { width: 1920, height: 1080 },
+  { width: 1366, height: 768 },
+  { width: 1280, height: 720 },
+  { width: 1600, height: 900 },
+  { width: 1280, height: 800 },
+  { width: 1080, height: 1920 },
 ];
 
 const NEWS_HERO_SELECTOR = 'section[aria-label="Noticia destacada"]';
@@ -199,7 +199,7 @@ async function measureLayout({ heroSelector, dashboardSelector }) {
   const dashboard = document.querySelector(dashboardSelector);
   if (!hero || !dashboard) return { error: 'No se encontró el hero o el contenedor principal' };
 
-  // Cada capa [data-hero-image] es una foto a pantalla completa del hero (día y noche).
+  // Cada capa [data-hero-image] es una foto a pantalla completa del hero.
   const layers = [];
   for (const element of hero.querySelectorAll('[data-hero-image]')) {
     const style = getComputedStyle(element);
@@ -252,7 +252,7 @@ function describeCrop(heroRect, image) {
   return { boxRatio, imageRatio, crop, axis: horizontal ? 'horizontal' : 'vertical' };
 }
 
-function evaluate(metrics, strictCrop) {
+function evaluate(metrics) {
   const problems = [];
   const warnings = [];
   const landscape = metrics.innerWidth > metrics.innerHeight;
@@ -290,7 +290,7 @@ function evaluate(metrics, strictCrop) {
     crops.push(crop);
     if (crop.crop > MAX_CROP_RATIO) {
       const message = `recorte de la imagen «${layer.name}» ${(crop.crop * 100).toFixed(1)}% (máx. ${MAX_CROP_RATIO * 100}%)`;
-      (strictCrop && layer.name !== 'custom' ? problems : warnings).push(message);
+      warnings.push(message);
     }
   }
 
@@ -342,7 +342,7 @@ async function captureViewport(page, viewport) {
   const file = join(outputDir, `${viewport.width}x${viewport.height}.png`);
   await writeFile(file, Buffer.from(data, 'base64'));
 
-  return { viewport, file, metrics, ...evaluate(metrics, viewport.strictCrop) };
+  return { viewport, file, metrics, ...evaluate(metrics) };
 }
 
 function formatLine({ viewport, metrics, problems, warnings, summary }) {

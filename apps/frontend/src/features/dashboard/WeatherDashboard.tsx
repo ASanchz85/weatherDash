@@ -19,9 +19,10 @@ interface WeatherDashboardProps {
   airQuality: AirQualityState;
   page: number;
   theme: Theme;
+  heroPhoto: string | null;
 }
 
-export function WeatherDashboard({ weather, airQuality, page, theme }: WeatherDashboardProps) {
+export function WeatherDashboard({ weather, airQuality, page, theme, heroPhoto }: WeatherDashboardProps) {
   const sideViews: RotatingViewItem[] = [
     { id: 'weather', content: <WeatherPanel state={weather} /> },
     { id: 'wind-air', content: <WindAirPanel weather={weather} airQuality={airQuality} /> },
@@ -33,7 +34,7 @@ export function WeatherDashboard({ weather, airQuality, page, theme }: WeatherDa
 
   return (
     <DashboardLayout>
-      <HeroPanel label="Fecha y hora" theme={theme}>
+      <HeroPanel label="Fecha y hora" theme={theme} imageUrl={heroPhoto}>
         <Clock />
       </HeroPanel>
       <SidePanel label="Meteorología">

@@ -35,5 +35,7 @@ export interface NewsItemDto {
 
 export interface NewsRotation {
   feed: NewsFeed;
+  /** Máximo de noticias por rotación; `items` puede traer menos. */
+  size: number;
   items: NewsItemDto[];
 }

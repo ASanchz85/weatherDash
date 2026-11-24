@@ -4,13 +4,12 @@ import type { NewsRepository } from './news.repository.js';
 import { startOfPreviousDay } from './news.retention.js';
 import { NEWS_FEEDS, type NewsFeed, type NewsRotation } from './news.types.js';
 
-/** Máximo de noticias que se muestran en cada rotación de un feed. */
-export const NEWS_ROTATION_SIZE = 8;
-
 export interface NewsServiceOptions {
   provider: NewsProvider;
   repository: NewsRepository;
   feedUrls: Record<NewsFeed, string>;
+  /** Máximo de noticias que se entregan en cada rotación de un feed. */
+  rotationSize: number;
   /** Zona horaria que define qué es «hoy» y «ayer». */
   timeZone: string;
   logger?: ServiceLogger;
@@ -27,6 +26,7 @@ export function createNewsService({
   provider,
   repository,
   feedUrls,
+  rotationSize,
   timeZone,
   logger,
   now = Date.now,
@@ -60,7 +60,7 @@ export function createNewsService({
       return pending;
     },
     nextRotation(feed) {
-      const items = repository.takeNextBatch(feed, NEWS_ROTATION_SIZE).map((item) => ({
+      const items = repository.takeNextBatch(feed, rotationSize).map((item) => ({
         id: item.id,
         title: item.title,
         link: item.link,
@@ -70,7 +70,7 @@ export function createNewsService({
         publishedAt: new Date(item.publishedAt).toISOString(),
         category: item.category,
       }));
-      return { feed, items };
+      return { feed, size: rotationSize, items };
     },
   };
 }

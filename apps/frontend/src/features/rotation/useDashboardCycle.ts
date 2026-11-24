@@ -1,12 +1,12 @@
-import { useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 
-import { SLIDE_DURATION_MS, WEATHER_REPETITIONS_PER_BLOCK } from '../../config';
+import { SLIDE_DURATION_MS, VIDEO_FALLBACK_MS, WEATHER_REPETITIONS_PER_BLOCK } from '../../config';
 import { fetchNewsRotation } from '../../services/newsApi';
 import type { UiConfig } from '../../services/configApi';
 import { NEWS_FEED_IDS, NEWS_FEED_LABELS, type NewsFeedId, type NewsRotation } from '../../types/news';
 
 /** Vista que ocupa la pantalla; el resto de datos se conserva para dibujar la vista saliente durante el fundido. */
-export type CycleView = 'weather' | 'slide' | 'news';
+export type CycleView = 'weather' | 'slide' | 'video' | 'news';
 
 export interface ActiveNews {
   rotation: NewsRotation;
@@ -21,6 +21,8 @@ export interface DashboardCycleState {
   /** Transiciones realizadas; permite sincronizar otros cambios (el tema) con la rotación. */
   tick: number;
   isRotating: boolean;
+  /** Para la vista de vídeo: avisa de que terminó (o no pudo reproducirse) y el ciclo debe seguir. */
+  finishVideo: () => void;
 }
 
 interface DashboardCycleOptions {
@@ -32,9 +34,11 @@ interface DashboardCycleOptions {
   pinnedPage: number | null;
   /** Fija la vista de noticias de un feed y desactiva la rotación. */
   pinnedFeed: NewsFeedId | null;
+  /** Si hay vídeo, sustituye a la diapositiva «Tiempo» que precede al tiempo. */
+  videoAvailable?: boolean;
 }
 
-type Phase = 'weather' | 'loading' | 'slide' | 'news';
+type Phase = 'weather' | 'loading' | 'slide' | 'video' | 'news';
 
 interface State {
   phase: Phase;
@@ -50,7 +54,8 @@ interface State {
 }
 
 type Action =
-  | { type: 'advance'; weatherSteps: number }
+  | { type: 'advance'; weatherSteps: number; videoAvailable: boolean }
+  | { type: 'videoFinished' }
   | { type: 'loaded'; rotation: NewsRotation | null };
 
 const WEATHER_SLIDE_TITLE = 'Tiempo';
@@ -78,6 +83,11 @@ function reduce(state: State, action: Action): State {
     });
   }
 
+  if (action.type === 'videoFinished') {
+    // El evento puede llegar tarde, con el ciclo ya en otra fase: entonces se ignora.
+    return state.phase === 'video' ? next({ phase: 'weather', weatherStep: 0 }) : state;
+  }
+
   switch (state.phase) {
     case 'weather':
       return state.weatherStep + 1 < action.weatherSteps
@@ -87,15 +97,17 @@ function reduce(state: State, action: Action): State {
       return state.slideNext === 'news'
         ? next({ phase: 'news', itemIndex: 0 })
         : next({ phase: 'weather', weatherStep: 0 });
-    case 'news':
-      return state.rotation && state.itemIndex + 1 < state.rotation.items.length
-        ? next({ itemIndex: state.itemIndex + 1 })
-        : next({
-            phase: 'slide',
-            slideTitle: WEATHER_SLIDE_TITLE,
-            slideNext: 'weather',
-            feedIndex: nextFeedIndex(state.feedIndex),
-          });
+    case 'video':
+      return next({ phase: 'weather', weatherStep: 0 });
+    case 'news': {
+      if (state.rotation && state.itemIndex + 1 < state.rotation.items.length) {
+        return next({ itemIndex: state.itemIndex + 1 });
+      }
+      const feedIndex = nextFeedIndex(state.feedIndex);
+      return action.videoAvailable
+        ? next({ phase: 'video', feedIndex })
+        : next({ phase: 'slide', slideTitle: WEATHER_SLIDE_TITLE, slideNext: 'weather', feedIndex });
+    }
     case 'loading':
       return state;
   }
@@ -123,6 +135,8 @@ function phaseDurationMs(phase: Phase, config: UiConfig): number | null {
       return SLIDE_DURATION_MS;
     case 'news':
       return config.newsItemDurationMs;
+    case 'video':
+      return VIDEO_FALLBACK_MS;
     case 'loading':
       return null;
   }
@@ -130,13 +144,15 @@ function phaseDurationMs(phase: Phase, config: UiConfig): number | null {
 
 /**
  * Ciclo del dashboard: las vistas del tiempo se repiten y después se muestra un feed de noticias, y así con
- * cada feed. Antes de cada bloque aparece una diapositiva con su título. Un feed sin noticias se salta.
+ * cada feed. Antes de cada feed aparece una diapositiva con su título y, al volver al tiempo, el vídeo (o la
+ * diapositiva «Tiempo» si no hay vídeo). Un feed sin noticias se salta.
  */
 export function useDashboardCycle({
   weatherPageCount,
   uiConfig,
   pinnedPage,
   pinnedFeed,
+  videoAvailable = false,
 }: DashboardCycleOptions): DashboardCycleState {
   const [state, dispatch] = useReducer(reduce, pinnedFeed, initialState);
   const weatherSteps = Math.max(weatherPageCount, 1) * WEATHER_REPETITIONS_PER_BLOCK;
@@ -147,9 +163,11 @@ export function useDashboardCycle({
   useEffect(() => {
     if (durationMs === null) return;
 
-    const id = window.setTimeout(() => dispatch({ type: 'advance', weatherSteps }), durationMs);
+    const id = window.setTimeout(() => dispatch({ type: 'advance', weatherSteps, videoAvailable }), durationMs);
     return () => window.clearTimeout(id);
-  }, [state.tick, durationMs, weatherSteps]);
+  }, [state.tick, durationMs, weatherSteps, videoAvailable]);
+
+  const finishVideo = useCallback(() => dispatch({ type: 'videoFinished' }), []);
 
   useEffect(() => {
     if (state.phase !== 'loading') return;
@@ -166,7 +184,7 @@ export function useDashboardCycle({
   }, [state.phase, state.feedIndex]);
 
   return {
-    view: state.phase === 'slide' || state.phase === 'news' ? state.phase : 'weather',
+    view: state.phase === 'slide' || state.phase === 'video' || state.phase === 'news' ? state.phase : 'weather',
     weatherPage: (pinnedPage ?? state.weatherStep) % Math.max(weatherPageCount, 1),
     slideTitle: state.slideTitle,
     news: state.rotation
@@ -174,5 +192,6 @@ export function useDashboardCycle({
       : null,
     tick: state.tick,
     isRotating,
+    finishVideo,
   };
 }

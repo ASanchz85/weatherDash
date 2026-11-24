@@ -42,8 +42,12 @@ export function parseNewsRotation(value: unknown): NewsRotation {
   }
   const feed = NEWS_FEED_IDS.find((candidate) => candidate === value.feed);
   if (!feed) throw new NewsApiError('Respuesta de noticias con formato inesperado');
+  const { size } = value;
+  if (typeof size !== 'number' || !Number.isInteger(size) || size < 1) {
+    throw new NewsApiError('Respuesta de noticias con formato inesperado');
+  }
 
-  return { feed, items: value.items.map(parseItem) };
+  return { feed, size, items: value.items.map(parseItem) };
 }
 
 /** Pide las noticias de la siguiente rotación del feed; el servidor las marca como mostradas. */

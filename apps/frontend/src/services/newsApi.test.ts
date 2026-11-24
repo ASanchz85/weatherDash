@@ -37,8 +37,9 @@ describe('upscaleEnclosure', () => {
 
 describe('parseNewsRotation', () => {
   it('normaliza la noticia con la foto en alta resolución', () => {
-    expect(parseNewsRotation({ feed: 'international', items: [apiItem] })).toEqual({
+    expect(parseNewsRotation({ feed: 'international', size: 5, items: [apiItem] })).toEqual({
       feed: 'international',
+      size: 5,
       items: [
         {
           id: 7,
@@ -53,14 +54,17 @@ describe('parseNewsRotation', () => {
   });
 
   it('acepta una rotación sin noticias', () => {
-    expect(parseNewsRotation({ feed: 'markets', items: [] })).toEqual({ feed: 'markets', items: [] });
+    expect(parseNewsRotation({ feed: 'markets', size: 5, items: [] })).toEqual({ feed: 'markets', size: 5, items: [] });
   });
 
   it('rechaza formatos inesperados', () => {
     expect(() => parseNewsRotation(null)).toThrow(NewsApiError);
-    expect(() => parseNewsRotation({ feed: 'deportes', items: [] })).toThrow(NewsApiError);
-    expect(() => parseNewsRotation({ feed: 'national', items: [{ ...apiItem, title: 3 }] })).toThrow(NewsApiError);
-    expect(() => parseNewsRotation({ feed: 'national', items: [{ ...apiItem, publishedAt: 'ayer' }] })).toThrow(
+    expect(() => parseNewsRotation({ feed: 'deportes', size: 5, items: [] })).toThrow(NewsApiError);
+    expect(() => parseNewsRotation({ feed: 'national', items: [] })).toThrow(NewsApiError);
+    expect(() => parseNewsRotation({ feed: 'national', size: 0, items: [] })).toThrow(NewsApiError);
+    expect(() => parseNewsRotation({ feed: 'national', size: 2.5, items: [] })).toThrow(NewsApiError);
+    expect(() => parseNewsRotation({ feed: 'national', size: 5, items: [{ ...apiItem, title: 3 }] })).toThrow(NewsApiError);
+    expect(() => parseNewsRotation({ feed: 'national', size: 5, items: [{ ...apiItem, publishedAt: 'ayer' }] })).toThrow(
       NewsApiError,
     );
   });
@@ -68,7 +72,7 @@ describe('parseNewsRotation', () => {
 
 describe('fetchNewsRotation', () => {
   it('pide la rotación con POST a la API local', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({ feed: 'national', items: [apiItem] }));
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ feed: 'national', size: 5, items: [apiItem] }));
     vi.stubGlobal('fetch', fetchMock);
 
     const rotation = await fetchNewsRotation('national');

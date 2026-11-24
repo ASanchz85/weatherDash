@@ -79,7 +79,7 @@ npm run screenshots -- --label=baseline # capturas en /tmp/weatherdash-screensho
 
 Opciones: `--label` (subcarpeta de salida), `--url` (por defecto `http://localhost:$PORT` o 3000; usa `http://localhost:5173` con `npm run dev`), `--query` (parámetros de URL de depuración, ver más abajo) y `--out` (directorio de salida). Respeta `CHROME_BIN`. Termina con código distinto de 0 si hay errores. Las capturas no se guardan en el repositorio; compara a ojo las de distintas etiquetas.
 
-El hero tiene dos capas de foto (día y noche) y el script comprueba cada una. Para revisar todas las variantes tras un cambio de interfaz:
+El hero muestra una foto (de `assets/day` o `assets/night`, o la de la noticia) y el script comprueba su recorte, que solo avisa porque la foto cambia en cada carga. Para revisar todas las variantes tras un cambio de interfaz:
 
 ```bash
 for query in page=0 page=1 "page=0&theme=day" "page=1&theme=night"; do
@@ -122,6 +122,7 @@ El backend lee el fichero `.env` de la raíz del repositorio (ver `.env.example`
 | `NEWS_FEED_INTERNATIONAL_URL`    | Europa Press `ch=69`  | RSS de la rotación Internacional.                                         |
 | `NEWS_FEED_MARKETS_URL`          | Europa Press `ch=136` | RSS de la rotación Mercados.                                              |
 | `NEWS_REFRESH_INTERVAL`          | `3600000`       | Cada cuánto consulta el backend los tres feeds en ms (1 hora); mínimo 60000. El timeout es `WEATHER_REQUEST_TIMEOUT`. |
+| `NEWS_ROTATION_SIZE`             | `5`             | Noticias de cada rotación de un feed (1-20): las que el backend elige de la base de datos y las que caben en la lista lateral. |
 
 La configuración se valida con Zod al arrancar; un valor inválido detiene el servidor con un mensaje descriptivo.
 
@@ -154,9 +155,9 @@ apps/
 │       ├── app.ts               composición de la aplicación (testeable con inject)
 │       └── server.ts            arranque, dotenv y cierre ordenado
 └── frontend/                    React 18 + Vite + CSS Modules
-    ├── assets/                  fotos del hero (día y noche) y fuentes JetBrains Mono (subconjunto latino, woff2)
+    ├── assets/                  fotos del hero en day/ y night/ (solo .webp), vídeo de transición en video/ (.mp4 sin audio) y fuentes JetBrains Mono (subconjunto latino, woff2)
     └── src/
-        ├── components/          HeroPanel (dos capas de foto), Panel, SidePanel, ForecastPanel (layout), Metric (ficha de medida)
+        ├── components/          HeroPanel (foto con fundido, variante de noticias con capa extra y pie de foto), Panel, SidePanel, ForecastPanel (layout), Metric (ficha de medida)
         ├── features/clock/      Clock, useCurrentTime, formateo Intl
         ├── features/dashboard/  useDashboardData: único dueño de la consulta de datos; WeatherDashboard
         ├── features/news/       NewsDashboard, NewsHero, NewsSidePanel, WeatherSummary (reloj + temperatura + rosa de los vientos)
@@ -178,9 +179,9 @@ apps/
 - **Arranque no bloqueante**: la primera consulta de cada módulo se lanza en segundo plano al arrancar; la localidad se resuelve una sola vez, de forma perezosa y compartida, y se reintenta si el geocoding falla.
 - **Reloj aislado**: el estado de la hora vive en `Clock`, de modo que su tic de cada segundo no vuelve a renderizar el resto del dashboard. Cada tic se programa con `setTimeout` hasta el siguiente segundo exacto según `Date.now()`, así que los retrasos no se acumulan y solo existe un temporizador. La fecha es un componente memorizado que solo se actualiza cuando cambia el día.
 - **Ciclo único de datos**: `useDashboardData` es el único dueño de la consulta. Pide a la vez el tiempo y la calidad del aire (y cada estado se publica en cuanto llega, con errores independientes), y repite el ciclo cuando el servidor indica que su caché caduca: `/api/weather` devuelve `nextRefreshInMs`, calculado en el servidor, y el frontend espera ese tiempo más 1 s. Así la cadencia sigue a `WEATHER_REFRESH_INTERVAL` sin desfases de reloj. Tras un fallo reintenta a los 30 s conservando los últimos datos. Los datos viven en `App`, fuera de las vistas rotatorias: **rotar nunca provoca una consulta**. El frontend no persiste nada en el navegador (ni `localStorage` ni `sessionStorage`): el backend conserva la última información en memoria y en SQLite, responde en milisegundos y la sirve incluso sin red o tras un reinicio.
-- **Rotación de vistas**: `useDashboardCycle` es una máquina de estados con un único temporizador por etapa. El ciclo es: vistas del tiempo × 2 vueltas (cada una dura `UI_ROTATION_INTERVAL`) → diapositiva «Nacional» → noticias → diapositiva «Tiempo» → tiempo × 2 → «Internacional» → noticias → … → «Mercados» → vuelta al inicio. Cada noticia permanece `UI_NEWS_ITEM_DURATION`; al mostrarlas todas termina el feed. La rotación de un feed se pide al backend justo antes de mostrarlo, y si no tiene noticias o falla se salta. Los tiempos se leen en `GET /api/config`, sin recompilar. `RotatingView` funde la vista actual (0,35 s) y después la nueva (0,35 s), también entre el dashboard y las diapositivas, sin fundido con `prefers-reduced-motion`.
-- **Noticias**: el backend consulta los tres feeds cada `NEWS_REFRESH_INTERVAL` y guarda cada ítem en la tabla `news` con el origen (`feed`: `national`, `international` o `markets`), independiente de la categoría que publica Europa Press. Solo se conservan las noticias de hoy y de ayer (según `WEATHER_TIMEZONE`, por defecto `Europe/Madrid`), se descartan las que no traen imagen (`enclosure`) y los duplicados se filtran por URL. `has_been_shown` permite que cada rotación elija las 8 noticias más recientes sin mostrar; si quedan menos de 8, se reinicia el estado del feed y se completa con las más recientes ya mostradas. El frontend sustituye `_120` por `_800` en la URL de la foto para pedirla con más resolución.
-- **Tema día/noche**: la foto depende de `is_day`. El primer dato válido y la rotación desactivada se aplican al instante; un cambio posterior espera al siguiente ciclo de rotación, para que la foto y las vistas cambien a la vez. Solo cambia la foto: los colores se mantienen.
+- **Rotación de vistas**: `useDashboardCycle` es una máquina de estados con un único temporizador por etapa. El ciclo es: vistas del tiempo × 2 vueltas (cada una dura `UI_ROTATION_INTERVAL`) → diapositiva «Nacional» → noticias → vídeo → tiempo × 2 → «Internacional» → noticias → … → «Mercados» → vuelta al inicio. Cada noticia permanece `UI_NEWS_ITEM_DURATION`; al mostrarlas todas termina el feed. La rotación de un feed se pide al backend justo antes de mostrarlo, y si no tiene noticias o falla se salta. Los tiempos se leen en `GET /api/config`, sin recompilar. `RotatingView` funde la vista actual (0,35 s) y después la nueva (0,35 s), también entre el dashboard y las diapositivas, sin fundido con `prefers-reduced-motion`.
+- **Noticias**: el backend consulta los tres feeds cada `NEWS_REFRESH_INTERVAL` y guarda cada ítem en la tabla `news` con el origen (`feed`: `national`, `international` o `markets`), independiente de la categoría que publica Europa Press. Solo se conservan las noticias de hoy y de ayer (según `WEATHER_TIMEZONE`, por defecto `Europe/Madrid`), se descartan las que no traen imagen (`enclosure`) y los duplicados se filtran por URL. `has_been_shown` permite que cada rotación elija las `NEWS_ROTATION_SIZE` noticias más recientes sin mostrar; si quedan menos, se reinicia el estado del feed y se completa con las más recientes ya mostradas. El frontend sustituye `_120` por `_800` en la URL de la foto para pedirla con más resolución.
+- **Tema día/noche**: el tema decide la carpeta de fotos del hero (`assets/day` o `assets/night`; cualquier `.webp` que añadas allí se incluye sin tocar código). Con cada rotación del tiempo se elige al azar una foto distinta de la anterior y se funde sobre ella (`useHeroPhoto`). El tema depende de `is_day`: el primer dato válido y la rotación desactivada se aplican al instante; un cambio posterior espera al siguiente ciclo de rotación, para que la foto y las vistas cambien a la vez. Solo cambia la foto: los colores se mantienen.
 - **Colores con significado**: el azul (`--color-rain`) se reserva para la lluvia y el naranja para el sol. Un icono es azul si la condición incluye lluvia (llovizna, lluvia, aguanieve, chubascos y tormenta, de día o de noche) y naranja si es cielo despejado o mayormente despejado de día (`weatherTone`). La predicción semanal colorea el icono y la probabilidad de lluvia (azul), y la gráfica horaria dibuja las barras de lluvia en azul. El resalte sutil de «Hoy» y de la ficha de sensación comparte los tokens `--highlight-*`.
 - **Color de las temperaturas** (`temperatureTone`, tokens `--temp-*`), igual en la card lateral, la predicción semanal, la gráfica horaria y el resumen de las noticias; se evalúa sobre el valor redondeado que se muestra y el blanco es el color por defecto: > 36° rojo, > 29° naranja, > 22° amarillo, < 12° azul, < 5° azul oscuro y < 0° morado.
 - **Frontend resiliente**: un error meteorológico nunca afecta al reloj.
@@ -208,11 +209,12 @@ Configuración de la interfaz, leída en tiempo de ejecución. Sin caché.
 
 ### `POST /api/news/:feed/rotation`
 
-`:feed` es `national`, `international` o `markets` (otro valor responde `404`). Devuelve hasta 8 noticias del feed, las más recientes sin mostrar, y las marca como mostradas; por eso es `POST`. Sin caché.
+`:feed` es `national`, `international` o `markets` (otro valor responde `404`). Devuelve hasta `size` noticias del feed (`NEWS_ROTATION_SIZE`), las más recientes sin mostrar, y las marca como mostradas; por eso es `POST`. Sin caché.
 
 ```json
 {
   "feed": "international",
+  "size": 5,
   "items": [
     {
       "id": 12,
@@ -362,8 +364,8 @@ El script instala dependencias si falta `node_modules`, espera a que `/api/healt
 
 ## Fuentes y recursos
 
-- `apps/frontend/assets/navaluenga.webp`: foto de día del hero (1280×853), oscurecida con un degradado CSS.
-- `apps/frontend/assets/navaluenga_noche.webp`: foto de noche del hero (680×385), recortada por abajo para quitar una marca de agua del original. Tiene poca resolución y se amplía en pantallas grandes; sustitúyela por una versión de mayor resolución si dispones de ella.
+- `apps/frontend/assets/video/*.mp4`: vídeo de 10 s que se reproduce completo, sin sonido ni controles, al volver al tiempo desde las noticias (sustituye a la diapositiva «Tiempo»). Se usa el primer `.mp4` de la carpeta; sin ninguno, vuelve la diapositiva. Si no llega a terminar, el ciclo sigue a los 15 s.
+- `apps/frontend/assets/day/*.webp` y `apps/frontend/assets/night/*.webp`: fotos del hero, oscurecidas con un degradado CSS (en las noticias, con una capa extra). Formato unificado en WebP con 1920 px de ancho como máximo. Algunas tienen poca resolución o formato vertical y se amplían o recortan en pantallas grandes; sustitúyelas por versiones apaisadas de mayor resolución si dispones de ellas.
 - `apps/frontend/assets/fonts/*.woff2`: subconjunto latino (Basic Latin + Latin-1) de JetBrains Mono Regular y Bold, generado con `pyftsubset` de fontTools. Para regenerarlo hacen falta los TTF originales, que ya no se incluyen en el repositorio.
 
 Las limitaciones conocidas están en [`docs/limitaciones.md`](docs/limitaciones.md).

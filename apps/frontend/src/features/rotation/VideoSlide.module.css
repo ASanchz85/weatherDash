@@ -1,0 +1,14 @@
+.slide {
+  height: 100dvh;
+  padding: var(--space-page);
+}
+
+.video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* contain muestra el vídeo completo, centrado; el sobrante queda con el fondo de la app */
+  object-fit: contain;
+  /* Sin interacción posible: ni controles ni menús al pasar el ratón */
+  pointer-events: none;
+}

@@ -1,35 +1,65 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 
+import { ROTATION_FADE_MS } from '../config';
 import { ROTATION_FADE_STYLE } from '../features/rotation/fadeStyle';
 import type { Theme } from '../types/theme';
 import styles from './HeroPanel.module.css';
 
 interface HeroPanelProps {
   label: string;
-  /** Tema de la foto de Navaluenga; se ignora si se indica `imageUrl`. */
+  /** Solo se expone como atributo; la foto la decide quien usa el panel. */
   theme?: Theme;
-  /** Foto propia (una noticia) que sustituye a la de día y de noche. */
-  imageUrl?: string;
+  /** Foto de fondo; al cambiar, la nueva se funde sobre la anterior. */
+  imageUrl?: string | null;
+  /** `news` añade una capa extra de oscurecimiento para leer mejor el texto. */
+  variant?: 'default' | 'news';
+  /** Pie de foto discreto en la esquina inferior derecha. */
+  caption?: string;
   children: ReactNode;
 }
 
-/** Panel principal con una foto oscurecida para dar contraste al contenido: la de día o de noche, o la indicada. */
-export function HeroPanel({ label, theme = 'day', imageUrl, children }: HeroPanelProps) {
-  const photoStyle: CSSProperties | undefined = imageUrl
-    ? { backgroundImage: `url(${JSON.stringify(imageUrl)})` }
-    : undefined;
+function photoStyle(url: string): CSSProperties {
+  return { backgroundImage: `url(${JSON.stringify(url)})` };
+}
 
+/** Mantiene la foto anterior debajo mientras la nueva aparece, para fundirlas en lugar de cortarlas. */
+function PhotoLayers({ url }: { url: string | null | undefined }) {
+  const [layers, setLayers] = useState<string[]>(url ? [url] : []);
+
+  useEffect(() => {
+    if (!url) {
+      setLayers([]);
+      return;
+    }
+    setLayers((previous) => (previous.at(-1) === url ? previous : [...previous.slice(-1), url]));
+    const id = window.setTimeout(() => setLayers([url]), ROTATION_FADE_MS * 2 + 50);
+    return () => window.clearTimeout(id);
+  }, [url]);
+
+  return layers.map((layer, index) => (
+    <div
+      key={layer}
+      className={index === 0 ? styles.image : `${styles.image} ${styles.enter}`}
+      style={photoStyle(layer)}
+      data-hero-image="photo"
+      aria-hidden="true"
+    />
+  ));
+}
+
+/** Panel principal con una foto oscurecida para dar contraste al contenido. */
+export function HeroPanel({ label, theme = 'day', imageUrl, variant = 'default', caption, children }: HeroPanelProps) {
   return (
-    <section className={styles.hero} aria-label={label} data-theme={theme} style={ROTATION_FADE_STYLE}>
-      {imageUrl ? (
-        <div className={styles.image} style={photoStyle} data-hero-image="custom" aria-hidden="true" />
-      ) : (
-        <>
-          <div className={`${styles.image} ${styles.day}`} data-hero-image="day" aria-hidden="true" />
-          <div className={`${styles.image} ${styles.night}`} data-hero-image="night" aria-hidden="true" />
-        </>
-      )}
+    <section
+      className={styles.hero}
+      aria-label={label}
+      data-theme={theme}
+      data-variant={variant}
+      style={ROTATION_FADE_STYLE}
+    >
+      <PhotoLayers url={imageUrl} />
       <div className={styles.content}>{children}</div>
+      {caption && <p className={styles.caption}>{caption}</p>}
     </section>
   );
 }
