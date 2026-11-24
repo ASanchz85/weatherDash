@@ -6,6 +6,8 @@ import { ROOT_ENV_PATH } from './config/paths.js';
 import { openDatabase } from './database/database.js';
 import { createSqliteSnapshotStorage } from './database/sqlite-snapshot-storage.js';
 import { createOpenMeteoAirQualityProvider } from './modules/air-quality/air-quality.provider.js';
+import { createNewsProvider } from './modules/news/news.provider.js';
+import { createNewsRepository } from './modules/news/news.repository.js';
 import { createOpenMeteoProvider } from './modules/weather/weather.provider.js';
 
 loadDotenv({ path: ROOT_ENV_PATH, quiet: true });
@@ -19,6 +21,12 @@ const app = await buildApp({
   uiConfig: config.ui,
   weatherProvider: createOpenMeteoProvider({ requestTimeoutMs }),
   airQualityProvider: createOpenMeteoAirQualityProvider({ requestTimeoutMs }),
+  news: {
+    config: config.news,
+    provider: createNewsProvider({ requestTimeoutMs: config.news.requestTimeoutMs }),
+    repository: createNewsRepository(database),
+    autoRefresh: true,
+  },
   snapshotStorage: createSqliteSnapshotStorage(database),
   staticDir: config.staticDir,
   prefetchWeather: true,

@@ -7,25 +7,31 @@ afterEach(() => {
 });
 
 describe('parseUiConfig', () => {
-  it('acepta un intervalo válido, incluido 0 (rotación desactivada)', () => {
-    expect(parseUiConfig({ rotationIntervalMs: 300000 })).toEqual({ rotationIntervalMs: 300000 });
-    expect(parseUiConfig({ rotationIntervalMs: 0 })).toEqual({ rotationIntervalMs: 0 });
+  it('acepta tiempos válidos, incluido 0 (rotación desactivada)', () => {
+    expect(parseUiConfig({ rotationIntervalMs: 300000, newsItemDurationMs: 60000 })).toEqual({
+      rotationIntervalMs: 300000,
+      newsItemDurationMs: 60000,
+    });
+    expect(parseUiConfig({ rotationIntervalMs: 0, newsItemDurationMs: 60000 }).rotationIntervalMs).toBe(0);
   });
 
   it('rechaza formatos inesperados', () => {
     expect(() => parseUiConfig(null)).toThrow(ConfigApiError);
     expect(() => parseUiConfig({})).toThrow(ConfigApiError);
-    expect(() => parseUiConfig({ rotationIntervalMs: '300000' })).toThrow(ConfigApiError);
-    expect(() => parseUiConfig({ rotationIntervalMs: -1 })).toThrow(ConfigApiError);
+    expect(() => parseUiConfig({ rotationIntervalMs: 300000 })).toThrow(ConfigApiError);
+    expect(() => parseUiConfig({ rotationIntervalMs: '300000', newsItemDurationMs: 60000 })).toThrow(ConfigApiError);
+    expect(() => parseUiConfig({ rotationIntervalMs: -1, newsItemDurationMs: 60000 })).toThrow(ConfigApiError);
+    expect(() => parseUiConfig({ rotationIntervalMs: 0, newsItemDurationMs: 0 })).toThrow(ConfigApiError);
   });
 });
 
 describe('fetchUiConfig', () => {
   it('consulta exclusivamente la API local', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({ rotationIntervalMs: 60000 }));
+    const body = { rotationIntervalMs: 60000, newsItemDurationMs: 30000 };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(body));
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(fetchUiConfig()).resolves.toEqual({ rotationIntervalMs: 60000 });
+    await expect(fetchUiConfig()).resolves.toEqual(body);
     expect(fetchMock).toHaveBeenCalledWith('/api/config', expect.anything());
   });
 

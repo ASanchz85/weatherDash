@@ -18,7 +18,30 @@ describe('loadConfig', () => {
       coordinates: null,
       refreshIntervalMs: 900000,
     });
-    expect(config.ui).toEqual({ rotationIntervalMs: 300000 });
+    expect(config.ui).toEqual({ rotationIntervalMs: 300000, newsItemDurationMs: 60000 });
+    expect(config.news).toEqual({
+      feedUrls: {
+        national: 'https://www.europapress.es/rss/rss.aspx?ch=66',
+        international: 'https://www.europapress.es/rss/rss.aspx?ch=69',
+        markets: 'https://www.europapress.es/rss/rss.aspx?ch=136',
+      },
+      refreshIntervalMs: 3600000,
+      requestTimeoutMs: 8000,
+    });
+  });
+
+  it('permite configurar los feeds de noticias y su temporización', () => {
+    const config = loadConfig({
+      NEWS_FEED_NATIONAL_URL: 'https://example.com/nacional.xml',
+      NEWS_REFRESH_INTERVAL: '120000',
+      UI_NEWS_ITEM_DURATION: '30000',
+      NEWS_FEED_MARKETS_URL: '',
+    });
+
+    expect(config.news.feedUrls.national).toBe('https://example.com/nacional.xml');
+    expect(config.news.feedUrls.markets).toBe('https://www.europapress.es/rss/rss.aspx?ch=136');
+    expect(config.news.refreshIntervalMs).toBe(120000);
+    expect(config.ui.newsItemDurationMs).toBe(30000);
   });
 
   it('permite configurar o desactivar la rotación de vistas', () => {
@@ -57,5 +80,8 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ WEATHER_REFRESH_INTERVAL: '1000' })).toThrow(ConfigError);
     expect(() => loadConfig({ UI_ROTATION_INTERVAL: '5000' })).toThrow(ConfigError);
     expect(() => loadConfig({ UI_ROTATION_INTERVAL: '-1' })).toThrow(ConfigError);
+    expect(() => loadConfig({ NEWS_FEED_NATIONAL_URL: 'no-es-url' })).toThrow(ConfigError);
+    expect(() => loadConfig({ NEWS_REFRESH_INTERVAL: '1000' })).toThrow(ConfigError);
+    expect(() => loadConfig({ UI_NEWS_ITEM_DURATION: '100' })).toThrow(ConfigError);
   });
 });

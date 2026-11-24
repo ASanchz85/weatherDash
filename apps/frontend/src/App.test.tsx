@@ -23,7 +23,7 @@ vi.mock('./services/configApi', async (importOriginal) => ({
 }));
 
 beforeEach(() => {
-  vi.mocked(fetchUiConfig).mockResolvedValue({ rotationIntervalMs: 0 });
+  vi.mocked(fetchUiConfig).mockResolvedValue({ rotationIntervalMs: 0, newsItemDurationMs: 60000 });
   vi.mocked(fetchAirQuality).mockResolvedValue(buildAirQualityData());
 });
 

@@ -10,6 +10,9 @@ export interface UiRoutesOptions {
 export const uiRoutes: FastifyPluginAsync<UiRoutesOptions> = async (app, { uiConfig }) => {
   app.get('/api/config', async (_request, reply) => {
     reply.header('Cache-Control', 'no-store');
-    return { rotationIntervalMs: uiConfig.rotationIntervalMs };
+    return {
+      rotationIntervalMs: uiConfig.rotationIntervalMs,
+      newsItemDurationMs: uiConfig.newsItemDurationMs,
+    };
   });
 };
