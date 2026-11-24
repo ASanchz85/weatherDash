@@ -27,6 +27,7 @@ describe('loadConfig', () => {
       },
       refreshIntervalMs: 3600000,
       requestTimeoutMs: 8000,
+      rotationSize: 5,
     });
   });
 
@@ -36,8 +37,10 @@ describe('loadConfig', () => {
       NEWS_REFRESH_INTERVAL: '120000',
       UI_NEWS_ITEM_DURATION: '30000',
       NEWS_FEED_MARKETS_URL: '',
+      NEWS_ROTATION_SIZE: '8',
     });
 
+    expect(config.news.rotationSize).toBe(8);
     expect(config.news.feedUrls.national).toBe('https://example.com/nacional.xml');
     expect(config.news.feedUrls.markets).toBe('https://www.europapress.es/rss/rss.aspx?ch=136');
     expect(config.news.refreshIntervalMs).toBe(120000);
@@ -82,6 +85,9 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ UI_ROTATION_INTERVAL: '-1' })).toThrow(ConfigError);
     expect(() => loadConfig({ NEWS_FEED_NATIONAL_URL: 'no-es-url' })).toThrow(ConfigError);
     expect(() => loadConfig({ NEWS_REFRESH_INTERVAL: '1000' })).toThrow(ConfigError);
+    expect(() => loadConfig({ NEWS_ROTATION_SIZE: '0' })).toThrow(ConfigError);
+    expect(() => loadConfig({ NEWS_ROTATION_SIZE: '21' })).toThrow(ConfigError);
+    expect(() => loadConfig({ NEWS_ROTATION_SIZE: '2.5' })).toThrow(ConfigError);
     expect(() => loadConfig({ UI_NEWS_ITEM_DURATION: '100' })).toThrow(ConfigError);
   });
 });

@@ -152,6 +152,7 @@ describe('API de noticias', () => {
           feedUrls: { national: 'https://x/n', international: 'https://x/i', markets: 'https://x/m' },
           refreshIntervalMs: 3600000,
           requestTimeoutMs: 8000,
+          rotationSize: 5,
         },
         provider: { fetchFeed: vi.fn() },
         repository,
@@ -179,7 +180,7 @@ describe('API de noticias', () => {
         { title: 'Titular a', category: 'Internacional' },
       ],
     });
-    expect(markets.json()).toEqual({ feed: 'markets', items: [] });
+    expect(markets.json()).toEqual({ feed: 'markets', size: 5, items: [] });
   });
 
   it('POST /api/news/:feed/rotation responde 404 para un feed desconocido', async () => {

@@ -93,6 +93,7 @@ export async function buildApp({
       provider: news.provider,
       repository: news.repository,
       feedUrls: news.config.feedUrls,
+      rotationSize: news.config.rotationSize,
       timeZone: weatherConfig.timezone ?? DEFAULT_NEWS_TIME_ZONE,
       logger: app.log,
       ...clock,

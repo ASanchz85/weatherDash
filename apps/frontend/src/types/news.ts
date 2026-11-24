@@ -23,5 +23,7 @@ export interface NewsItem {
 
 export interface NewsRotation {
   feed: NewsFeedId;
+  /** Noticias que caben en la lista lateral; `items` puede traer menos. */
+  size: number;
   items: NewsItem[];
 }

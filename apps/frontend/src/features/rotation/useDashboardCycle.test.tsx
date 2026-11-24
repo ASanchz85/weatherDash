@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SLIDE_DURATION_MS } from '../../config';
+import { SLIDE_DURATION_MS, VIDEO_FALLBACK_MS } from '../../config';
 import { fetchNewsRotation } from '../../services/newsApi';
 import type { NewsFeedId, NewsItem, NewsRotation } from '../../types/news';
 import { useDashboardCycle } from './useDashboardCycle';
@@ -21,7 +21,7 @@ function buildRotation(feed: NewsFeedId, count = 3): NewsRotation {
     publishedAt: '2026-11-24T07:32:49.000Z',
     category: 'Internacional',
   }));
-  return { feed, items };
+  return { feed, size: 5, items };
 }
 
 function renderCycle(options: Partial<Parameters<typeof useDashboardCycle>[0]> = {}) {
@@ -95,6 +95,44 @@ describe('useDashboardCycle', () => {
 
     await advance(SLIDE_DURATION_MS);
     expect(result.current).toMatchObject({ view: 'weather', weatherPage: 0 });
+  });
+
+  it('con v\u00eddeo disponible lo muestra en lugar de la diapositiva \u00abTiempo\u00bb y sigue al terminar', async () => {
+    const { result } = renderCycle({ videoAvailable: true });
+    await finishWeatherBlock();
+    await advance(SLIDE_DURATION_MS);
+    for (let item = 0; item < 3; item += 1) await advance(NEWS_ITEM_MS);
+
+    expect(result.current.view).toBe('video');
+
+    act(() => result.current.finishVideo());
+    expect(result.current).toMatchObject({ view: 'weather', weatherPage: 0 });
+    // La diapositiva del feed sigue existiendo: solo se sustituye la de \u00abTiempo\u00bb.
+    await finishWeatherBlock();
+    expect(result.current).toMatchObject({ view: 'slide', slideTitle: 'Internacional' });
+  });
+
+  it('el v\u00eddeo no tiene duraci\u00f3n fija pero el ciclo contin\u00faa si nunca termina', async () => {
+    const { result } = renderCycle({ videoAvailable: true });
+    await finishWeatherBlock();
+    await advance(SLIDE_DURATION_MS);
+    for (let item = 0; item < 3; item += 1) await advance(NEWS_ITEM_MS);
+    expect(result.current.view).toBe('video');
+
+    await advance(VIDEO_FALLBACK_MS - 1);
+    expect(result.current.view).toBe('video');
+    await advance(1);
+    expect(result.current.view).toBe('weather');
+  });
+
+  it('ignora el aviso de v\u00eddeo terminado si el ciclo no est\u00e1 en el v\u00eddeo', async () => {
+    const { result } = renderCycle({ videoAvailable: true });
+    await advance(ROTATION_MS);
+    const tick = result.current.tick;
+
+    act(() => result.current.finishVideo());
+
+    expect(result.current).toMatchObject({ view: 'weather', weatherPage: 1, tick });
   });
 
   it('recorre nacional, internacional y mercados y reinicia el ciclo', async () => {

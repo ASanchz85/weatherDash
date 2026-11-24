@@ -11,6 +11,10 @@ export function buildNewsItems(count = 3): NewsItem[] {
   }));
 }
 
-export function buildNewsRotation(feed: NewsRotation['feed'] = 'national', count = 3): NewsRotation {
-  return { feed, items: buildNewsItems(count) };
+export function buildNewsRotation(
+  feed: NewsRotation['feed'] = 'national',
+  count = 3,
+  size = 5,
+): NewsRotation {
+  return { feed, size, items: buildNewsItems(count) };
 }

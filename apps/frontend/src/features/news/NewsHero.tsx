@@ -10,7 +10,7 @@ interface NewsHeroProps {
 /** Foto de la noticia con su titular, metadata (fecha y categoría de Europa Press) y descripción encima. */
 export function NewsHero({ item }: NewsHeroProps) {
   return (
-    <HeroPanel label="Noticia destacada" imageUrl={item.imageUrl}>
+    <HeroPanel label="Noticia destacada" imageUrl={item.imageUrl} variant="news" caption="Europa Press">
       <article className={styles.article}>
         <h2 className={styles.title}>{item.title}</h2>
         <p className={styles.meta}>

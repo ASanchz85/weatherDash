@@ -12,6 +12,8 @@ export const DEFAULT_NEWS_ITEM_DURATION_MS = 60 * 1000;
 export const WEATHER_REPETITIONS_PER_BLOCK = 2;
 /** Duración total de la diapositiva con el título de lo que se va a mostrar, incluidos los fundidos. */
 export const SLIDE_DURATION_MS = 2500;
+/** Tope de la diapositiva de vídeo (dura 10 s) por si no llega a terminar, p. ej. si no puede reproducirse. */
+export const VIDEO_FALLBACK_MS = 15 * 1000;
 /** Duración de cada mitad (salida y entrada) del fundido entre vistas. */
 export const ROTATION_FADE_MS = 350;
 /** Margen sobre el tiempo que indica el servidor para que su caché ya haya caducado al volver a consultar. */

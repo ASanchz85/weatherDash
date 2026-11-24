@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from '../../App';
@@ -58,9 +58,12 @@ describe('rotación completa del dashboard', () => {
       newsItemDurationMs: NEWS_ITEM_MS,
     });
     vi.mocked(fetchNewsRotation).mockImplementation(async (feed) => buildNewsRotation(feed));
+    // jsdom no implementa la reproducción de vídeo.
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
     vi.mocked(fetchWeather).mockReset();
     vi.mocked(fetchAirQuality).mockReset();
@@ -68,7 +71,7 @@ describe('rotación completa del dashboard', () => {
     vi.mocked(fetchNewsRotation).mockReset();
   });
 
-  it('alterna tiempo, diapositiva y noticias sin volver a consultar el tiempo', async () => {
+  it('alterna tiempo, diapositiva, noticias y vídeo sin volver a consultar el tiempo', async () => {
     render(<App />);
     await advance(0);
     expect(screen.getByRole('region', { name: 'Fecha y hora' })).toBeInTheDocument();
@@ -100,12 +103,21 @@ describe('rotación completa del dashboard', () => {
     expect(within(side).getByText('Titular 2').closest('li')).toHaveAttribute('aria-current', 'true');
     expect(within(side).getByText('Titular 1').closest('li')).not.toHaveAttribute('aria-current');
 
-    // Tras la última noticia aparece la diapositiva del tiempo y se vuelve al dashboard meteorológico.
+    // Tras la última noticia el vídeo sustituye a la diapositiva «Tiempo»; al terminar vuelve el dashboard meteorológico.
     await showNextStage(NEWS_ITEM_MS);
     await showNextStage(NEWS_ITEM_MS);
-    expect(screen.getByRole('heading', { level: 1, name: 'Tiempo' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1, name: 'Tiempo' })).not.toBeInTheDocument();
+    const video = document.querySelector('video');
+    expect(video).not.toBeNull();
+    expect(video?.muted).toBe(true);
+    expect(video?.controls).toBe(false);
 
-    await showNextStage(SLIDE_DURATION_MS);
+    await advance(ROTATION_FADE_MS);
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      fireEvent.ended(video!);
+    });
+    await advance(ROTATION_FADE_MS);
     expect(screen.getByRole('region', { name: 'Fecha y hora' })).toBeInTheDocument();
 
     expect(fetchWeather).toHaveBeenCalledTimes(1);

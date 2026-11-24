@@ -16,7 +16,7 @@ const feedUrls: Record<NewsFeed, string> = {
 
 const databases: SqliteDatabase[] = [];
 
-function setup(fetchFeed: NewsProvider['fetchFeed'], logger = { warn: vi.fn() }) {
+function setup(fetchFeed: NewsProvider['fetchFeed'], logger = { warn: vi.fn() }, rotationSize = 8) {
   const db = openDatabase(IN_MEMORY_DATABASE);
   databases.push(db);
   const repository = createNewsRepository(db);
@@ -24,6 +24,7 @@ function setup(fetchFeed: NewsProvider['fetchFeed'], logger = { warn: vi.fn() })
     provider: { fetchFeed },
     repository,
     feedUrls,
+    rotationSize,
     timeZone: 'Europe/Madrid',
     logger,
     now: () => NOW,
@@ -94,8 +95,24 @@ describe('createNewsService', () => {
     const rotation = service.nextRotation('national');
 
     expect(rotation.feed).toBe('national');
+    expect(rotation.size).toBe(8);
     expect(rotation.items).toEqual([
       expect.objectContaining({ title: 'Titular a', publishedAt: '2026-11-24T07:32:49.000Z', category: 'Internacional' }),
     ]);
+  });
+
+  it('limita cada rotación al tamaño configurado y avanza por las noticias sin mostrar', async () => {
+    const items = Array.from({ length: 7 }, (_, index) =>
+      buildNewsItem(`n${index}`, { publishedAt: Date.UTC(2026, 10, 24, 0, index) }),
+    );
+    const { service } = setup(async (url) => (url === feedUrls.national ? items : []), undefined, 3);
+    await service.refresh();
+
+    const titles = () => service.nextRotation('national').items.map((item) => item.title);
+
+    expect(titles()).toEqual(['Titular n6', 'Titular n5', 'Titular n4']);
+    expect(titles()).toEqual(['Titular n3', 'Titular n2', 'Titular n1']);
+    // Solo queda n0 sin mostrar: se reinicia el feed y se completa con las m\u00e1s recientes.
+    expect(titles()).toEqual(['Titular n6', 'Titular n5', 'Titular n0']);
   });
 });

@@ -17,6 +17,8 @@ const MIN_ROTATION_INTERVAL_MS = 10 * 1000;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const DEFAULT_NEWS_ITEM_DURATION_MS = 60 * 1000;
 const MIN_NEWS_ITEM_DURATION_MS = 5 * 1000;
+const DEFAULT_NEWS_ROTATION_SIZE = 5;
+const MAX_NEWS_ROTATION_SIZE = 20;
 const DEFAULT_NEWS_FEED_URLS = {
   national: 'https://www.europapress.es/rss/rss.aspx?ch=66',
   international: 'https://www.europapress.es/rss/rss.aspx?ch=69',
@@ -80,6 +82,10 @@ const envSchema = z
       blankToUndefined,
       z.coerce.number().int().min(MIN_REFRESH_INTERVAL_MS).default(ONE_HOUR_MS),
     ),
+    NEWS_ROTATION_SIZE: z.preprocess(
+      blankToUndefined,
+      z.coerce.number().int().min(1).max(MAX_NEWS_ROTATION_SIZE).default(DEFAULT_NEWS_ROTATION_SIZE),
+    ),
   })
   .refine((env) => (env.WEATHER_LATITUDE === undefined) === (env.WEATHER_LONGITUDE === undefined), {
     message: 'WEATHER_LATITUDE y WEATHER_LONGITUDE deben definirse juntas o dejarse ambas vacías',
@@ -115,6 +121,8 @@ export interface NewsConfig {
   feedUrls: { national: string; international: string; markets: string };
   refreshIntervalMs: number;
   requestTimeoutMs: number;
+  /** Noticias de cada rotación de un feed: las que elige la base de datos y las que muestra la card lateral. */
+  rotationSize: number;
 }
 
 export interface AppConfig {
@@ -174,6 +182,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       },
       refreshIntervalMs: parsed.NEWS_REFRESH_INTERVAL,
       requestTimeoutMs: parsed.WEATHER_REQUEST_TIMEOUT,
+      rotationSize: parsed.NEWS_ROTATION_SIZE,
     },
     ui: {
       rotationIntervalMs: parsed.UI_ROTATION_INTERVAL,
