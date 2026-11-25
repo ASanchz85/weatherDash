@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 
 import { SLIDE_DURATION_MS, VIDEO_FALLBACK_MS, WEATHER_REPETITIONS_PER_BLOCK } from '../../config';
 import { fetchNewsRotation } from '../../services/newsApi';
@@ -34,6 +34,8 @@ interface DashboardCycleOptions {
   pinnedPage: number | null;
   /** Fija la vista de noticias de un feed y desactiva la rotación. */
   pinnedFeed: NewsFeedId | null;
+  /** Se queda en un feed sin diapositivas ni tiempo, pero sus noticias siguen rotando cada `newsItemDurationMs`. */
+  lockedFeed?: NewsFeedId | null;
   /** Si hay vídeo, sustituye a la diapositiva «Tiempo» que precede al tiempo. */
   videoAvailable?: boolean;
 }
@@ -50,12 +52,14 @@ interface State {
   rotation: NewsRotation | null;
   itemIndex: number;
   pinned: boolean;
+  locked: boolean;
   tick: number;
 }
 
 type Action =
   | { type: 'advance'; weatherSteps: number; videoAvailable: boolean }
   | { type: 'videoFinished' }
+  | { type: 'pin'; pinnedFeed: NewsFeedId | null; lockedFeed: NewsFeedId | null }
   | { type: 'loaded'; rotation: NewsRotation | null };
 
 const WEATHER_SLIDE_TITLE = 'Tiempo';
@@ -67,9 +71,21 @@ function nextFeedIndex(index: number): number {
 function reduce(state: State, action: Action): State {
   const next = (changes: Partial<State>): State => ({ ...state, ...changes, tick: state.tick + 1 });
 
+  if (action.type === 'pin') {
+    return { ...initialState(action.pinnedFeed, action.lockedFeed), tick: state.tick + 1 };
+  }
+
   if (action.type === 'loaded') {
     const { rotation } = action;
-    if (rotation === null || rotation.items.length === 0) {
+    const isEmpty = rotation === null || rotation.items.length === 0;
+    if (state.locked) {
+      if (!isEmpty) return next({ phase: 'news', rotation, itemIndex: 0 });
+      // Si la consulta falla se repiten las noticias ya mostradas y se reintenta al terminarlas.
+      return state.rotation
+        ? next({ phase: 'news', itemIndex: 0 })
+        : next({ phase: 'weather', weatherStep: 0, rotation: null });
+    }
+    if (isEmpty) {
       // Un feed sin noticias se salta: el ciclo sigue con el tiempo.
       return next({ phase: 'weather', weatherStep: 0, rotation: null, feedIndex: nextFeedIndex(state.feedIndex) });
     }
@@ -103,6 +119,8 @@ function reduce(state: State, action: Action): State {
       if (state.rotation && state.itemIndex + 1 < state.rotation.items.length) {
         return next({ itemIndex: state.itemIndex + 1 });
       }
+      // Con el feed bloqueado, al terminar las noticias se pide la siguiente tanda del mismo feed.
+      if (state.locked) return next({ phase: 'loading' });
       const feedIndex = nextFeedIndex(state.feedIndex);
       return action.videoAvailable
         ? next({ phase: 'video', feedIndex })
@@ -113,16 +131,18 @@ function reduce(state: State, action: Action): State {
   }
 }
 
-function initialState(pinnedFeed: NewsFeedId | null): State {
+function initialState(pinnedFeed: NewsFeedId | null, lockedFeed: NewsFeedId | null = null): State {
+  const feed = pinnedFeed ?? lockedFeed;
   return {
-    phase: pinnedFeed ? 'loading' : 'weather',
-    feedIndex: pinnedFeed ? NEWS_FEED_IDS.indexOf(pinnedFeed) : 0,
+    phase: feed ? 'loading' : 'weather',
+    feedIndex: feed ? NEWS_FEED_IDS.indexOf(feed) : 0,
     weatherStep: 0,
     slideTitle: WEATHER_SLIDE_TITLE,
     slideNext: 'weather',
     rotation: null,
     itemIndex: 0,
     pinned: pinnedFeed !== null,
+    locked: pinnedFeed === null && lockedFeed !== null,
     tick: 0,
   };
 }
@@ -152,13 +172,24 @@ export function useDashboardCycle({
   uiConfig,
   pinnedPage,
   pinnedFeed,
+  lockedFeed = null,
   videoAvailable = false,
 }: DashboardCycleOptions): DashboardCycleState {
-  const [state, dispatch] = useReducer(reduce, pinnedFeed, initialState);
+  const [state, dispatch] = useReducer(reduce, { pinnedFeed, lockedFeed }, ({ pinnedFeed, lockedFeed }) =>
+    initialState(pinnedFeed, lockedFeed),
+  );
   const weatherSteps = Math.max(weatherPageCount, 1) * WEATHER_REPETITIONS_PER_BLOCK;
-  const isRotating =
+  const canRotate =
     uiConfig !== null && uiConfig.rotationIntervalMs > 0 && pinnedPage === null && pinnedFeed === null;
-  const durationMs = isRotating ? phaseDurationMs(state.phase, uiConfig) : null;
+  // Con el feed bloqueado solo rota el contenido del feed: el resto del ciclo queda fijo.
+  const isRotating = canRotate && lockedFeed === null;
+  const durationMs = !canRotate
+    ? null
+    : lockedFeed === null
+      ? phaseDurationMs(state.phase, uiConfig)
+      : state.phase === 'news'
+        ? uiConfig.newsItemDurationMs
+        : null;
 
   useEffect(() => {
     if (durationMs === null) return;
@@ -168,6 +199,14 @@ export function useDashboardCycle({
   }, [state.tick, durationMs, weatherSteps, videoAvailable]);
 
   const finishVideo = useCallback(() => dispatch({ type: 'videoFinished' }), []);
+
+  // Los feeds fijados pueden llegar después del montaje (la configuración del backend es asíncrona).
+  const previousPins = useRef({ pinnedFeed, lockedFeed });
+  useEffect(() => {
+    if (previousPins.current.pinnedFeed === pinnedFeed && previousPins.current.lockedFeed === lockedFeed) return;
+    previousPins.current = { pinnedFeed, lockedFeed };
+    dispatch({ type: 'pin', pinnedFeed, lockedFeed });
+  }, [pinnedFeed, lockedFeed]);
 
   useEffect(() => {
     if (state.phase !== 'loading') return;
@@ -184,7 +223,13 @@ export function useDashboardCycle({
   }, [state.phase, state.feedIndex]);
 
   return {
-    view: state.phase === 'slide' || state.phase === 'video' || state.phase === 'news' ? state.phase : 'weather',
+    // Entre dos tandas de un feed bloqueado se mantiene la última noticia en lugar de volver al tiempo.
+    view:
+      state.phase === 'slide' || state.phase === 'video' || state.phase === 'news'
+        ? state.phase
+        : state.phase === 'loading' && state.locked && state.rotation
+          ? 'news'
+          : 'weather',
     weatherPage: (pinnedPage ?? state.weatherStep) % Math.max(weatherPageCount, 1),
     slideTitle: state.slideTitle,
     news: state.rotation

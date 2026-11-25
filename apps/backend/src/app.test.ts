@@ -19,7 +19,7 @@ async function createTestApp(
 ) {
   const app = await buildApp({
     weatherConfig: { ...weatherConfig, coordinates: { latitude: 40.41, longitude: -4.71 } },
-    uiConfig: { rotationIntervalMs: 300000, newsItemDurationMs: 60000 },
+    uiConfig: { rotationIntervalMs: 300000, newsItemDurationMs: 60000, pinnedScreen: null },
     weatherProvider: { geocode: vi.fn(), fetchForecast },
     airQualityProvider: { fetchAirQuality },
     staticDir: null,
@@ -49,7 +49,7 @@ describe('API REST', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['cache-control']).toBe('no-store');
-    expect(response.json()).toEqual({ rotationIntervalMs: 300000, newsItemDurationMs: 60000 });
+    expect(response.json()).toEqual({ rotationIntervalMs: 300000, newsItemDurationMs: 60000, pinnedScreen: null });
   });
 
   it('GET /api/weather devuelve la información normalizada', async () => {
@@ -145,7 +145,7 @@ describe('API de noticias', () => {
     repository.saveItems('national', [buildNewsItem('a'), buildNewsItem('b', { publishedAt: Date.UTC(2026, 10, 24, 9) })]);
     const app = await buildApp({
       weatherConfig,
-      uiConfig: { rotationIntervalMs: 300000, newsItemDurationMs: 60000 },
+      uiConfig: { rotationIntervalMs: 300000, newsItemDurationMs: 60000, pinnedScreen: null },
       weatherProvider: { geocode: vi.fn(), fetchForecast: vi.fn() },
       airQualityProvider: { fetchAirQuality: vi.fn() },
       news: {

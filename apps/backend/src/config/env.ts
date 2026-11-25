@@ -36,6 +36,17 @@ const optionalCoordinate = (min: number, max: number) =>
   z.preprocess(blankToUndefined, z.coerce.number().min(min).max(max).optional());
 const feedUrl = (fallback: string) => z.preprocess(blankToUndefined, z.url().default(fallback));
 
+/** Pantallas que se pueden fijar con UI_PINNED_SCREEN; `0` las muestra todas. Los feeds deben coincidir con NEWS_FEEDS. */
+const UI_SCREENS = [
+  'weather-1',
+  'weather-2',
+  'news-national',
+  'news-international',
+  'news-economy',
+  'news-markets',
+] as const;
+export type UiScreen = (typeof UI_SCREENS)[number];
+
 const envSchema = z
   .object({
     NODE_ENV: z.preprocess(
@@ -76,6 +87,7 @@ const envSchema = z
       blankToUndefined,
       z.coerce.number().int().min(MIN_NEWS_ITEM_DURATION_MS).default(DEFAULT_NEWS_ITEM_DURATION_MS),
     ),
+    UI_PINNED_SCREEN: z.preprocess(blankToUndefined, z.enum(['0', ...UI_SCREENS]).default('0')),
     NEWS_FEED_NATIONAL_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.national),
     NEWS_FEED_INTERNATIONAL_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.international),
     NEWS_FEED_ECONOMY_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.economy),
@@ -117,6 +129,8 @@ export interface UiConfig {
   rotationIntervalMs: number;
   /** Tiempo que cada noticia permanece resaltada en el hero. */
   newsItemDurationMs: number;
+  /** Pantalla fija sin rotación ni diapositivas; null muestra todas. */
+  pinnedScreen: UiScreen | null;
 }
 
 export interface NewsConfig {
@@ -190,6 +204,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     ui: {
       rotationIntervalMs: parsed.UI_ROTATION_INTERVAL,
       newsItemDurationMs: parsed.UI_NEWS_ITEM_DURATION,
+      pinnedScreen: parsed.UI_PINNED_SCREEN === '0' ? null : parsed.UI_PINNED_SCREEN,
     },
   };
 }
