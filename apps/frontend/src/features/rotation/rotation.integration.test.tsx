@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from '../../App';
-import { ROTATION_FADE_MS, SLIDE_DURATION_MS } from '../../config';
+import { ROTATION_FADE_MS } from '../../config';
 import { fetchAirQuality } from '../../services/airQualityApi';
 import { fetchUiConfig } from '../../services/configApi';
 import { fetchNewsRotation } from '../../services/newsApi';
@@ -71,18 +71,26 @@ describe('rotación completa del dashboard', () => {
     vi.mocked(fetchNewsRotation).mockReset();
   });
 
-  it('alterna tiempo, diapositiva, noticias y vídeo sin volver a consultar el tiempo', async () => {
+  it('alterna tiempo, vídeo, noticias y vídeo sin volver a consultar el tiempo', async () => {
     render(<App />);
     await advance(0);
     expect(screen.getByRole('region', { name: 'Fecha y hora' })).toBeInTheDocument();
 
-    // Dos vueltas de las dos vistas del tiempo y después la diapositiva del feed nacional.
+    // Dos vueltas de las dos vistas del tiempo y después el vídeo del feed nacional.
     for (let step = 0; step < 4; step += 1) await advance(ROTATION_INTERVAL_MS);
     await advance(ROTATION_FADE_MS);
-    expect(screen.getByRole('heading', { level: 1, name: 'Nacional' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1, name: 'Nacional' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Fecha y hora' })).not.toBeInTheDocument();
+    const feedVideo = document.querySelector('video');
+    expect(feedVideo).not.toBeNull();
+    expect(feedVideo?.getAttribute('src')).toContain('news-national');
 
-    await showNextStage(SLIDE_DURATION_MS);
+    await advance(ROTATION_FADE_MS);
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      fireEvent.ended(feedVideo!);
+    });
+    await advance(ROTATION_FADE_MS * 2);
     const hero = screen.getByRole('region', { name: 'Noticia destacada' });
     expect(within(hero).getByRole('heading', { name: 'Titular 1' })).toBeInTheDocument();
     expect(within(hero).getByText('Descripción de la noticia 1')).toBeInTheDocument();
@@ -113,7 +121,7 @@ describe('rotación completa del dashboard', () => {
     expect(video?.controls).toBe(false);
 
     await advance(ROTATION_FADE_MS);
-    expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(2);
     await act(async () => {
       fireEvent.ended(video!);
     });

@@ -5,12 +5,12 @@ import { useDashboardData } from './features/dashboard/useDashboardData';
 import { WEATHER_PAGE_COUNT, WeatherDashboard } from './features/dashboard/WeatherDashboard';
 import { NewsDashboard } from './features/news/NewsDashboard';
 import { parseDebugOverrides } from './features/rotation/debugOverrides';
-import { INTRO_VIDEO_URL } from './features/rotation/introVideo';
 import { RotatingView, type RotatingViewItem } from './features/rotation/RotatingView';
 import { TitleSlide } from './features/rotation/TitleSlide';
 import { useDashboardCycle, type CycleView } from './features/rotation/useDashboardCycle';
 import { useUiConfig } from './features/rotation/useUiConfig';
 import { VideoSlide } from './features/rotation/VideoSlide';
+import { AVAILABLE_VIDEOS, VIDEO_URLS } from './features/rotation/videoUrls';
 import { useCommittedTheme } from './features/theme/useCommittedTheme';
 import { useHeroPhoto } from './features/theme/useHeroPhoto';
 import { themeFromIsDay } from './types/theme';
@@ -32,8 +32,9 @@ export function App() {
     pinnedPage: configPin ? configPin.page : overrides.page,
     pinnedFeed: overrides.feed,
     lockedFeed: configPin ? configPin.feed : null,
-    videoAvailable: INTRO_VIDEO_URL !== null,
+    availableVideos: AVAILABLE_VIDEOS,
   });
+  const videoSrc = VIDEO_URLS[cycle.videoId];
   const desiredTheme = weather.status === 'ready' ? themeFromIsDay(weather.data.current.isDay) : null;
   const committedTheme = useCommittedTheme(desiredTheme, cycle.tick, cycle.isRotating);
   const theme = overrides.theme ?? committedTheme;
@@ -56,7 +57,7 @@ export function App() {
     { id: 'slide', content: <TitleSlide title={cycle.slideTitle} /> },
     {
       id: 'video',
-      content: INTRO_VIDEO_URL && <VideoSlide src={INTRO_VIDEO_URL} onFinished={cycle.finishVideo} />,
+      content: videoSrc && <VideoSlide key={videoSrc} src={videoSrc} onFinished={cycle.finishVideo} />,
     },
     { id: 'news', content: cycle.news && <NewsDashboard news={cycle.news} weather={weather} /> },
   ];

@@ -98,22 +98,43 @@ describe('useDashboardCycle', () => {
   });
 
   it('con v\u00eddeo disponible lo muestra en lugar de la diapositiva \u00abTiempo\u00bb y sigue al terminar', async () => {
-    const { result } = renderCycle({ videoAvailable: true });
+    const { result } = renderCycle({ availableVideos: ['weather'] });
     await finishWeatherBlock();
     await advance(SLIDE_DURATION_MS);
     for (let item = 0; item < 3; item += 1) await advance(NEWS_ITEM_MS);
 
-    expect(result.current.view).toBe('video');
+    expect(result.current).toMatchObject({ view: 'video', videoId: 'weather' });
 
     act(() => result.current.finishVideo());
     expect(result.current).toMatchObject({ view: 'weather', weatherPage: 0 });
-    // La diapositiva del feed sigue existiendo: solo se sustituye la de \u00abTiempo\u00bb.
+    // Sin vídeo del feed, su diapositiva sigue existiendo: solo se sustituye la de «Tiempo».
     await finishWeatherBlock();
     expect(result.current).toMatchObject({ view: 'slide', slideTitle: 'Internacional' });
   });
 
-  it('el v\u00eddeo no tiene duraci\u00f3n fija pero el ciclo contin\u00faa si nunca termina', async () => {
-    const { result } = renderCycle({ videoAvailable: true });
+  it('con vídeo del feed lo muestra en lugar de su diapositiva y después pasa a las noticias', async () => {
+    const { result } = renderCycle({ availableVideos: ['national'] });
+    await finishWeatherBlock();
+
+    expect(result.current).toMatchObject({ view: 'video', videoId: 'national' });
+    expect(result.current.news).not.toBeNull();
+
+    act(() => result.current.finishVideo());
+    expect(result.current.view).toBe('news');
+    expect(result.current.news?.activeIndex).toBe(0);
+  });
+
+  it('el vídeo del feed continúa a las noticias si nunca termina', async () => {
+    const { result } = renderCycle({ availableVideos: ['national'] });
+    await finishWeatherBlock();
+    expect(result.current.view).toBe('video');
+
+    await advance(VIDEO_FALLBACK_MS);
+    expect(result.current.view).toBe('news');
+  });
+
+  it('el vídeo no tiene duración fija pero el ciclo continúa si nunca termina', async () => {
+    const { result } = renderCycle({ availableVideos: ['weather'] });
     await finishWeatherBlock();
     await advance(SLIDE_DURATION_MS);
     for (let item = 0; item < 3; item += 1) await advance(NEWS_ITEM_MS);
@@ -126,7 +147,7 @@ describe('useDashboardCycle', () => {
   });
 
   it('ignora el aviso de v\u00eddeo terminado si el ciclo no est\u00e1 en el v\u00eddeo', async () => {
-    const { result } = renderCycle({ videoAvailable: true });
+    const { result } = renderCycle({ availableVideos: ['weather'] });
     await advance(ROTATION_MS);
     const tick = result.current.tick;
 
