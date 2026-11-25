@@ -11,6 +11,14 @@ export const NEWS_FEED_LABELS: Readonly<Record<NewsFeedId, string>> = {
   markets: 'Mercados',
 };
 
+/** Proveedor que publica cada feed; es el que firma el pie de foto del hero. */
+export const NEWS_FEED_SOURCES: Readonly<Record<NewsFeedId, string>> = {
+  national: 'Europa Press',
+  international: 'Europa Press',
+  economy: 'Expansión',
+  markets: 'Expansión',
+};
+
 export interface NewsItem {
   id: number;
   title: string;
