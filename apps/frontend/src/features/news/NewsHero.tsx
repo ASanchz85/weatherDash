@@ -5,12 +5,14 @@ import { formatPublishedAt } from './newsFormat';
 
 interface NewsHeroProps {
   item: NewsItem;
+  /** Proveedor de la noticia; firma el pie de foto. */
+  source: string;
 }
 
-/** Foto de la noticia con su titular, metadata (fecha y categoría de Europa Press) y descripción encima. */
-export function NewsHero({ item }: NewsHeroProps) {
+/** Foto de la noticia con su titular, metadata (fecha y categoría del proveedor) y descripción encima. */
+export function NewsHero({ item, source }: NewsHeroProps) {
   return (
-    <HeroPanel label="Noticia destacada" imageUrl={item.imageUrl} variant="news" caption="Europa Press">
+    <HeroPanel label="Noticia destacada" imageUrl={item.imageUrl} variant="news" caption={source}>
       <article className={styles.article}>
         <h2 className={styles.title}>{item.title}</h2>
         <p className={styles.meta}>
