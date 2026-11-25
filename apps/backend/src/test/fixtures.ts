@@ -235,3 +235,59 @@ export const NEWS_FEED_XML = `<?xml version="1.0" encoding="utf-8"?>
 </item>
 </channel>
 </rss>`;
+
+export const EXPANSION_FEED_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
+<channel>
+<title><![CDATA[ Mercados ]]></title>
+<item>
+<title>
+<![CDATA[ Solaria y Merlin aceleran en el Ibex con el nuevo decreto de centros de datos ]]>
+</title>
+<description>
+<![CDATA[ Texto largo con enlaces.&nbsp;<a href="https://www.expansion.com/mercados/2026/10/27/6ae0794b468aeb796d8b459e.html">Leer</a><img src="http://secure-uk.imrworldwide.com/cgi-bin/m?cid=x" alt=""/> ]]>
+</description>
+<dc:creator>
+<![CDATA[ Alejandro Sánchez ]]>
+</dc:creator>
+<link>https://www.expansion.com/mercados/2026/10/27/6ae0794b468aeb796d8b459e.html</link>
+<category>
+<![CDATA[ Mercados ]]>
+</category>
+<category>
+<![CDATA[ Inversión ]]>
+</category>
+<category>
+<![CDATA[ Artículos Alejandro Sánchez ]]>
+</category>
+<media:description type="html">
+<![CDATA[ La reformulación del decreto resulta aún "insuficiente", a juicio de los analistas.&nbsp; Solaria y Merlin despuntan en el <b>Ibex</b>. ]]>
+</media:description>
+<media:title type="html">
+<![CDATA[ MERCADOS ]]>
+</media:title>
+<media:content url="https://e00-expansion.uecdn.es/assets/multimedia/imagenes/2026/10/27/17930959876861.jpg" medium="image" width="2048" height="1365"/>
+<media:thumbnail url="https://e00-expansion.uecdn.es/assets/multimedia/imagenes/2026/10/27/17930959876861_150x0.jpg" width="150" height="99"/>
+<guid>https://www.expansion.com/mercados/2026/10/27/6ae0794b468aeb796d8b459e.html</guid>
+<pubDate>Tue, 27 Oct 2026 13:26:41 +0100</pubDate>
+</item>
+<item>
+<title><![CDATA[ Noticia sin imagen ]]></title>
+<link>https://www.expansion.com/mercados/2026/10/27/sin-imagen.html</link>
+<media:description type="html"><![CDATA[ No trae media:content ]]></media:description>
+<pubDate>Tue, 27 Oct 2026 12:00:00 +0100</pubDate>
+</item>
+<item>
+<title><![CDATA[ Noticia con fecha rota ]]></title>
+<link>https://www.expansion.com/mercados/2026/10/27/fecha-rota.html</link>
+<media:content url="https://e00-expansion.uecdn.es/assets/multimedia/imagenes/a.jpg" medium="image"/>
+<pubDate>no es una fecha</pubDate>
+</item>
+<item>
+<title><![CDATA[ Solaria y Merlin aceleran en el Ibex (repetida) ]]></title>
+<link>https://www.expansion.com/mercados/2026/10/27/6ae0794b468aeb796d8b459e.html?utm_source=rss#comentarios</link>
+<media:content url="https://e00-expansion.uecdn.es/assets/multimedia/imagenes/a.jpg" medium="image"/>
+<pubDate>Tue, 27 Oct 2026 13:30:00 +0100</pubDate>
+</item>
+</channel>
+</rss>`;

@@ -34,7 +34,7 @@ describe('openDatabase', () => {
     open(path).close();
     const reopened = open(path);
 
-    expect(reopened.pragma('user_version', { simple: true })).toBe(2);
+    expect(reopened.pragma('user_version', { simple: true })).toBe(3);
     expect(reopened.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").pluck().all()).toEqual(
       expect.arrayContaining(['snapshots', 'news']),
     );

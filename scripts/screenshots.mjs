@@ -3,7 +3,7 @@
 // y comprueba scroll, desbordes, solapes y el recorte (aspect-ratio) de la imagen del hero.
 //
 // Uso: npm run screenshots -- [--label=baseline] [--url=http://localhost:3000] [--query=page=1] [--out=/tmp/weatherdash-screenshots]
-// La vista de noticias se captura con --query=feed=national (o international, markets).
+// La vista de noticias se captura con --query=feed=national (o international, economy, markets).
 // Requiere la app sirviéndose (npm run start tras npm run build, o npm run dev con --url=http://localhost:5173).
 // Variables opcionales: CHROME_BIN, PORT, SCREENSHOT_URL.
 import { spawn } from 'node:child_process';

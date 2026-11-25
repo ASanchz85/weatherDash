@@ -1,6 +1,7 @@
-export const NEWS_FEEDS = ['national', 'international', 'markets'] as const;
+/** El orden es el del ciclo de rotación del dashboard. */
+export const NEWS_FEEDS = ['national', 'international', 'economy', 'markets'] as const;
 
-/** Origen de la petición; es independiente de la categoría que publica Europa Press en cada noticia. */
+/** Origen de la petición; es independiente de la categoría que publica el proveedor en cada noticia. */
 export type NewsFeed = (typeof NEWS_FEEDS)[number];
 
 /** Noticia normalizada a partir de un `item` del RSS. */
@@ -12,7 +13,7 @@ export interface ParsedNewsItem {
   guid: string;
   /** Instante de publicación en milisegundos desde epoch. */
   publishedAt: number;
-  /** Categoría publicada por Europa Press. */
+  /** Categoría publicada por el proveedor. */
   category: string;
 }
 

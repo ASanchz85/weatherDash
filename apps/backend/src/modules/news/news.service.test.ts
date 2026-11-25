@@ -11,6 +11,7 @@ const NOW = Date.UTC(2026, 10, 24, 10);
 const feedUrls: Record<NewsFeed, string> = {
   national: 'https://example.com/nacional',
   international: 'https://example.com/internacional',
+  economy: 'https://example.com/economia',
   markets: 'https://example.com/mercados',
 };
 
@@ -20,8 +21,9 @@ function setup(fetchFeed: NewsProvider['fetchFeed'], logger = { warn: vi.fn() },
   const db = openDatabase(IN_MEMORY_DATABASE);
   databases.push(db);
   const repository = createNewsRepository(db);
+  const provider: NewsProvider = { fetchFeed };
   const service = createNewsService({
-    provider: { fetchFeed },
+    providers: { national: provider, international: provider, economy: provider, markets: provider },
     repository,
     feedUrls,
     rotationSize,
@@ -44,6 +46,7 @@ describe('createNewsService', () => {
     await service.refresh();
 
     expect(db.prepare('SELECT feed, title FROM news ORDER BY feed').all()).toEqual([
+      { feed: 'economy', title: 'Titular economia' },
       { feed: 'international', title: 'Titular internacional' },
       { feed: 'markets', title: 'Titular mercados' },
       { feed: 'national', title: 'Titular nacional' },
@@ -75,7 +78,11 @@ describe('createNewsService', () => {
 
     await service.refresh();
 
-    expect(db.prepare('SELECT feed FROM news ORDER BY feed').pluck().all()).toEqual(['markets', 'national']);
+    expect(db.prepare('SELECT feed FROM news ORDER BY feed').pluck().all()).toEqual([
+      'economy',
+      'markets',
+      'national',
+    ]);
     expect(logger.warn).toHaveBeenCalledWith(expect.objectContaining({ feed: 'international' }), expect.any(String));
   });
 
@@ -85,7 +92,27 @@ describe('createNewsService', () => {
 
     await Promise.all([service.refresh(), service.refresh()]);
 
-    expect(fetchFeed).toHaveBeenCalledTimes(3);
+    expect(fetchFeed).toHaveBeenCalledTimes(4);
+  });
+
+  it('consulta cada feed con su propio proveedor', async () => {
+    const europaPress = { fetchFeed: vi.fn(async (_url: string) => [buildNewsItem('ep')]) };
+    const expansion = { fetchFeed: vi.fn(async (_url: string) => [buildNewsItem('ex')]) };
+    const db = openDatabase(IN_MEMORY_DATABASE);
+    databases.push(db);
+    const service = createNewsService({
+      providers: { national: europaPress, international: europaPress, economy: expansion, markets: expansion },
+      repository: createNewsRepository(db),
+      feedUrls,
+      rotationSize: 8,
+      timeZone: 'Europe/Madrid',
+      now: () => NOW,
+    });
+
+    await service.refresh();
+
+    expect(europaPress.fetchFeed.mock.calls.map(([url]) => url)).toEqual([feedUrls.national, feedUrls.international]);
+    expect(expansion.fetchFeed.mock.calls.map(([url]) => url)).toEqual([feedUrls.economy, feedUrls.markets]);
   });
 
   it('entrega la rotación con fechas ISO', async () => {

@@ -5,7 +5,8 @@ import { startOfPreviousDay } from './news.retention.js';
 import { NEWS_FEEDS, type NewsFeed, type NewsRotation } from './news.types.js';
 
 export interface NewsServiceOptions {
-  provider: NewsProvider;
+  /** Proveedor que sabe leer el RSS de cada feed. */
+  providers: Record<NewsFeed, NewsProvider>;
   repository: NewsRepository;
   feedUrls: Record<NewsFeed, string>;
   /** Máximo de noticias que se entregan en cada rotación de un feed. */
@@ -23,7 +24,7 @@ export interface NewsService {
 }
 
 export function createNewsService({
-  provider,
+  providers,
   repository,
   feedUrls,
   rotationSize,
@@ -40,7 +41,7 @@ export function createNewsService({
     await Promise.all(
       NEWS_FEEDS.map(async (feed) => {
         try {
-          const items = await provider.fetchFeed(feedUrls[feed]);
+          const items = await providers[feed].fetchFeed(feedUrls[feed]);
           repository.saveItems(
             feed,
             items.filter((item) => item.publishedAt >= cutoff),

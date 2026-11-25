@@ -95,7 +95,7 @@ Solo para desarrollo y capturas; se ignoran si no son válidos.
 | --- | --- |
 | `?page=N` | Fija la página mostrada (0 = tiempo y semana, 1 = viento y aire y próximas horas) y desactiva la rotación. |
 | `?theme=day` / `?theme=night` | Fuerza la foto de día o de noche, sin esperar a los datos ni a la rotación. |
-| `?feed=national` / `international` / `markets` | Fija la vista de noticias de ese feed (primera noticia) y desactiva la rotación. |
+| `?feed=national` / `international` / `economy` / `markets` | Fija la vista de noticias de ese feed (primera noticia) y desactiva la rotación. |
 
 ## Configuración (variables de entorno)
 
@@ -120,8 +120,9 @@ El backend lee el fichero `.env` de la raíz del repositorio (ver `.env.example`
 | `UI_NEWS_ITEM_DURATION`          | `60000`         | Tiempo que cada noticia permanece resaltada en el hero en ms (1 minuto); mínimo 5000. |
 | `NEWS_FEED_NATIONAL_URL`         | Europa Press `ch=66`  | RSS de la rotación Nacional.                                              |
 | `NEWS_FEED_INTERNATIONAL_URL`    | Europa Press `ch=69`  | RSS de la rotación Internacional.                                         |
-| `NEWS_FEED_MARKETS_URL`          | Europa Press `ch=136` | RSS de la rotación Mercados.                                              |
-| `NEWS_REFRESH_INTERVAL`          | `3600000`       | Cada cuánto consulta el backend los tres feeds en ms (1 hora); mínimo 60000. El timeout es `WEATHER_REQUEST_TIMEOUT`. |
+| `NEWS_FEED_MARKETS_URL`          | Expansión `mercados.xml` | RSS de la rotación Mercados.                                          |
+| `NEWS_FEED_ECONOMY_URL`          | Expansión `economia.xml`  | RSS de la rotación Economía.                                          |
+| `NEWS_REFRESH_INTERVAL`          | `3600000`       | Cada cuánto consulta el backend los cuatro feeds en ms (1 hora); mínimo 60000. El timeout es `WEATHER_REQUEST_TIMEOUT`. |
 | `NEWS_ROTATION_SIZE`             | `5`             | Noticias de cada rotación de un feed (1-20): las que el backend elige de la base de datos y las que caben en la lista lateral. |
 
 La configuración se valida con Zod al arrancar; un valor inválido detiene el servidor con un mensaje descriptivo.
@@ -140,7 +141,7 @@ apps/
 │       ├── modules/
 │       │   ├── health/          GET /api/health
 │       │   ├── ui/              GET /api/config (configuración de la interfaz: tiempos de rotación)
-│       │   ├── news/            RSS de Europa Press: proveedor (parseo), repositorio SQLite, servicio (refresco, retención) y POST /api/news/:feed/rotation
+│       │   ├── news/            RSS de Europa Press y Expansión: proveedores (parseo; Expansión en `expansion/` con imagen, limpieza de texto, duplicados y adapter), repositorio SQLite, servicio (refresco, retención) y POST /api/news/:feed/rotation
 │       │   ├── location/        localidad resuelta una sola vez (geocoding o coordenadas) y compartida
 │       │   ├── open-meteo/      cliente HTTP común (timeout, estado HTTP, validación con Zod)
 │       │   ├── air-quality/     GET /api/air-quality: proveedor, esquema, servicio (caché ≥ 1 h) y rutas
@@ -179,8 +180,8 @@ apps/
 - **Arranque no bloqueante**: la primera consulta de cada módulo se lanza en segundo plano al arrancar; la localidad se resuelve una sola vez, de forma perezosa y compartida, y se reintenta si el geocoding falla.
 - **Reloj aislado**: el estado de la hora vive en `Clock`, de modo que su tic de cada segundo no vuelve a renderizar el resto del dashboard. Cada tic se programa con `setTimeout` hasta el siguiente segundo exacto según `Date.now()`, así que los retrasos no se acumulan y solo existe un temporizador. La fecha es un componente memorizado que solo se actualiza cuando cambia el día.
 - **Ciclo único de datos**: `useDashboardData` es el único dueño de la consulta. Pide a la vez el tiempo y la calidad del aire (y cada estado se publica en cuanto llega, con errores independientes), y repite el ciclo cuando el servidor indica que su caché caduca: `/api/weather` devuelve `nextRefreshInMs`, calculado en el servidor, y el frontend espera ese tiempo más 1 s. Así la cadencia sigue a `WEATHER_REFRESH_INTERVAL` sin desfases de reloj. Tras un fallo reintenta a los 30 s conservando los últimos datos. Los datos viven en `App`, fuera de las vistas rotatorias: **rotar nunca provoca una consulta**. El frontend no persiste nada en el navegador (ni `localStorage` ni `sessionStorage`): el backend conserva la última información en memoria y en SQLite, responde en milisegundos y la sirve incluso sin red o tras un reinicio.
-- **Rotación de vistas**: `useDashboardCycle` es una máquina de estados con un único temporizador por etapa. El ciclo es: vistas del tiempo × 2 vueltas (cada una dura `UI_ROTATION_INTERVAL`) → diapositiva «Nacional» → noticias → vídeo → tiempo × 2 → «Internacional» → noticias → … → «Mercados» → vuelta al inicio. Cada noticia permanece `UI_NEWS_ITEM_DURATION`; al mostrarlas todas termina el feed. La rotación de un feed se pide al backend justo antes de mostrarlo, y si no tiene noticias o falla se salta. Los tiempos se leen en `GET /api/config`, sin recompilar. `RotatingView` funde la vista actual (0,35 s) y después la nueva (0,35 s), también entre el dashboard y las diapositivas, sin fundido con `prefers-reduced-motion`.
-- **Noticias**: el backend consulta los tres feeds cada `NEWS_REFRESH_INTERVAL` y guarda cada ítem en la tabla `news` con el origen (`feed`: `national`, `international` o `markets`), independiente de la categoría que publica Europa Press. Solo se conservan las noticias de hoy y de ayer (según `WEATHER_TIMEZONE`, por defecto `Europe/Madrid`), se descartan las que no traen imagen (`enclosure`) y los duplicados se filtran por URL. `has_been_shown` permite que cada rotación elija las `NEWS_ROTATION_SIZE` noticias más recientes sin mostrar; si quedan menos, se reinicia el estado del feed y se completa con las más recientes ya mostradas. El frontend sustituye `_120` por `_800` en la URL de la foto para pedirla con más resolución.
+- **Rotación de vistas**: `useDashboardCycle` es una máquina de estados con un único temporizador por etapa. El ciclo es: vistas del tiempo × 2 vueltas (cada una dura `UI_ROTATION_INTERVAL`) → diapositiva «Nacional» → noticias → vídeo → tiempo × 2 → «Internacional» → noticias → … → «Economía» → «Mercados» → vuelta al inicio. Cada noticia permanece `UI_NEWS_ITEM_DURATION`; al mostrarlas todas termina el feed. La rotación de un feed se pide al backend justo antes de mostrarlo, y si no tiene noticias o falla se salta. Los tiempos se leen en `GET /api/config`, sin recompilar. `RotatingView` funde la vista actual (0,35 s) y después la nueva (0,35 s), también entre el dashboard y las diapositivas, sin fundido con `prefers-reduced-motion`.
+- **Noticias**: el backend consulta los cuatro feeds cada `NEWS_REFRESH_INTERVAL` y guarda cada ítem en la tabla `news` con el origen (`feed`: `national`, `international`, `economy` o `markets`), independiente de la categoría que publica el proveedor. Solo se conservan las noticias de hoy y de ayer (según `WEATHER_TIMEZONE`, por defecto `Europe/Madrid`), se descartan las que no traen imagen (`enclosure`) y los duplicados se filtran por URL. `has_been_shown` permite que cada rotación elija las `NEWS_ROTATION_SIZE` noticias más recientes sin mostrar; si quedan menos, se reinicia el estado del feed y se completa con las más recientes ya mostradas. El frontend sustituye `_120` por `_800` en la URL de la foto (solo Europa Press) para pedirla con más resolución.
 - **Tema día/noche**: el tema decide la carpeta de fotos del hero (`assets/day` o `assets/night`; cualquier `.webp` que añadas allí se incluye sin tocar código). Con cada rotación del tiempo se elige al azar una foto distinta de la anterior y se funde sobre ella (`useHeroPhoto`). El tema depende de `is_day`: el primer dato válido y la rotación desactivada se aplican al instante; un cambio posterior espera al siguiente ciclo de rotación, para que la foto y las vistas cambien a la vez. Solo cambia la foto: los colores se mantienen.
 - **Colores con significado**: el azul (`--color-rain`) se reserva para la lluvia y el naranja para el sol. Un icono es azul si la condición incluye lluvia (llovizna, lluvia, aguanieve, chubascos y tormenta, de día o de noche) y naranja si es cielo despejado o mayormente despejado de día (`weatherTone`). La predicción semanal colorea el icono y la probabilidad de lluvia (azul), y la gráfica horaria dibuja las barras de lluvia en azul. El resalte sutil de «Hoy» y de la ficha de sensación comparte los tokens `--highlight-*`.
 - **Color de las temperaturas** (`temperatureTone`, tokens `--temp-*`), igual en la card lateral, la predicción semanal, la gráfica horaria y el resumen de las noticias; se evalúa sobre el valor redondeado que se muestra y el blanco es el color por defecto: > 36° rojo, > 29° naranja, > 22° amarillo, < 12° azul, < 5° azul oscuro y < 0° morado.
@@ -209,7 +210,7 @@ Configuración de la interfaz, leída en tiempo de ejecución. Sin caché.
 
 ### `POST /api/news/:feed/rotation`
 
-`:feed` es `national`, `international` o `markets` (otro valor responde `404`). Devuelve hasta `size` noticias del feed (`NEWS_ROTATION_SIZE`), las más recientes sin mostrar, y las marca como mostradas; por eso es `POST`. Sin caché.
+`:feed` es `national`, `international`, `economy` o `markets` (otro valor responde `404`). Devuelve hasta `size` noticias del feed (`NEWS_ROTATION_SIZE`), las más recientes sin mostrar, y las marca como mostradas; por eso es `POST`. Sin caché.
 
 ```json
 {
@@ -297,6 +298,11 @@ Todas las medidas pueden ser `null`. El polen llega a `0` fuera de temporada y a
 
 - Los feeds RSS 2.0 se parsean con `fast-xml-parser` y cada `item` se valida con Zod (`title`, `link`, `enclosure`, `pubDate`; `description`, `guid` y `category` son opcionales). Un ítem inválido o sin imagen se omite sin invalidar el resto del feed.
 - Si un feed falla se registra y se conservan las noticias que ya había; los demás feeds se actualizan igualmente.
+
+## Integración con Expansión
+
+- Los feeds de Economía y Mercados (RSS 2.0 con `media:`) se parsean con `fast-xml-parser` y los adapta `modules/news/expansion/`: `expansion.image.ts` (URL de `media:content`, sin transformar; sin imagen se descarta la noticia), `expansion.sanitizer.ts` (quita restos de CDATA, HTML, entidades y caracteres invisibles de titular, descripción y categoría, y valida la fecha), `expansion.dedupe.ts` (normaliza el enlace y descarta duplicados) y `expansion.adapter.ts` (une las piezas y devuelve el formato de la base de datos).
+- La descripción sale de `media:description`, la categoría es la primera `<category>` y `guid` cae al enlace si falta. `link` es único en toda la tabla: un artículo que esté en Economía y Mercados solo se muestra en el feed que lo guardó primero.
 
 ## Integración con Open-Meteo
 

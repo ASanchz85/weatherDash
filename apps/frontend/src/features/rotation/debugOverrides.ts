@@ -6,7 +6,7 @@ export interface DebugOverrides {
   page: number | null;
   /** Fuerza el tema sin esperar a los datos ni a la rotación (?theme=day|night). */
   theme: Theme | null;
-  /** Fija la vista de noticias del feed indicado y desactiva la rotación (?feed=national|international|markets). */
+  /** Fija la vista de noticias del feed indicado y desactiva la rotación (?feed=national|international|economy|markets). */
   feed: NewsFeedId | null;
 }
 

@@ -22,7 +22,8 @@ const MAX_NEWS_ROTATION_SIZE = 20;
 const DEFAULT_NEWS_FEED_URLS = {
   national: 'https://www.europapress.es/rss/rss.aspx?ch=66',
   international: 'https://www.europapress.es/rss/rss.aspx?ch=69',
-  markets: 'https://www.europapress.es/rss/rss.aspx?ch=136',
+  economy: 'https://e00-expansion.uecdn.es/rss/economia.xml',
+  markets: 'https://e00-expansion.uecdn.es/rss/mercados.xml',
 } as const;
 
 /** Las variables vacías en .env se tratan como no definidas. */
@@ -77,6 +78,7 @@ const envSchema = z
     ),
     NEWS_FEED_NATIONAL_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.national),
     NEWS_FEED_INTERNATIONAL_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.international),
+    NEWS_FEED_ECONOMY_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.economy),
     NEWS_FEED_MARKETS_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.markets),
     NEWS_REFRESH_INTERVAL: z.preprocess(
       blankToUndefined,
@@ -118,7 +120,7 @@ export interface UiConfig {
 }
 
 export interface NewsConfig {
-  feedUrls: { national: string; international: string; markets: string };
+  feedUrls: { national: string; international: string; economy: string; markets: string };
   refreshIntervalMs: number;
   requestTimeoutMs: number;
   /** Noticias de cada rotación de un feed: las que elige la base de datos y las que muestra la card lateral. */
@@ -178,6 +180,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       feedUrls: {
         national: parsed.NEWS_FEED_NATIONAL_URL,
         international: parsed.NEWS_FEED_INTERNATIONAL_URL,
+        economy: parsed.NEWS_FEED_ECONOMY_URL,
         markets: parsed.NEWS_FEED_MARKETS_URL,
       },
       refreshIntervalMs: parsed.NEWS_REFRESH_INTERVAL,

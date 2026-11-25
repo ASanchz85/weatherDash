@@ -23,7 +23,8 @@ describe('loadConfig', () => {
       feedUrls: {
         national: 'https://www.europapress.es/rss/rss.aspx?ch=66',
         international: 'https://www.europapress.es/rss/rss.aspx?ch=69',
-        markets: 'https://www.europapress.es/rss/rss.aspx?ch=136',
+        economy: 'https://e00-expansion.uecdn.es/rss/economia.xml',
+        markets: 'https://e00-expansion.uecdn.es/rss/mercados.xml',
       },
       refreshIntervalMs: 3600000,
       requestTimeoutMs: 8000,
@@ -42,7 +43,7 @@ describe('loadConfig', () => {
 
     expect(config.news.rotationSize).toBe(8);
     expect(config.news.feedUrls.national).toBe('https://example.com/nacional.xml');
-    expect(config.news.feedUrls.markets).toBe('https://www.europapress.es/rss/rss.aspx?ch=136');
+    expect(config.news.feedUrls.markets).toBe('https://e00-expansion.uecdn.es/rss/mercados.xml');
     expect(config.news.refreshIntervalMs).toBe(120000);
     expect(config.ui.newsItemDurationMs).toBe(30000);
   });
