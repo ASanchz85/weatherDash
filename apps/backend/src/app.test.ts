@@ -141,6 +141,7 @@ describe('API de noticias', () => {
   async function createNewsApp() {
     const database = openDatabase(IN_MEMORY_DATABASE);
     const repository = createNewsRepository(database);
+    const provider = { fetchFeed: vi.fn() };
     repository.saveItems('national', [buildNewsItem('a'), buildNewsItem('b', { publishedAt: Date.UTC(2026, 10, 24, 9) })]);
     const app = await buildApp({
       weatherConfig,
@@ -149,12 +150,17 @@ describe('API de noticias', () => {
       airQualityProvider: { fetchAirQuality: vi.fn() },
       news: {
         config: {
-          feedUrls: { national: 'https://x/n', international: 'https://x/i', markets: 'https://x/m' },
+          feedUrls: {
+            national: 'https://x/n',
+            international: 'https://x/i',
+            economy: 'https://x/e',
+            markets: 'https://x/m',
+          },
           refreshIntervalMs: 3600000,
           requestTimeoutMs: 8000,
           rotationSize: 5,
         },
-        provider: { fetchFeed: vi.fn() },
+        providers: { national: provider, international: provider, economy: provider, markets: provider },
         repository,
       },
       staticDir: null,
@@ -170,6 +176,7 @@ describe('API de noticias', () => {
 
     const first = await app.inject({ method: 'POST', url: '/api/news/national/rotation' });
     const markets = await app.inject({ method: 'POST', url: '/api/news/markets/rotation' });
+    const economy = await app.inject({ method: 'POST', url: '/api/news/economy/rotation' });
 
     expect(first.statusCode).toBe(200);
     expect(first.headers['cache-control']).toBe('no-store');
@@ -181,6 +188,7 @@ describe('API de noticias', () => {
       ],
     });
     expect(markets.json()).toEqual({ feed: 'markets', size: 5, items: [] });
+    expect(economy.json()).toEqual({ feed: 'economy', size: 5, items: [] });
   });
 
   it('POST /api/news/:feed/rotation responde 404 para un feed desconocido', async () => {

@@ -17,6 +17,7 @@ describe('parseDebugOverrides', () => {
 
   it('lee el feed de noticias fijado', () => {
     expect(parseDebugOverrides('?feed=markets')).toEqual({ ...NONE, feed: 'markets' });
+    expect(parseDebugOverrides('?feed=economy')).toEqual({ ...NONE, feed: 'economy' });
   });
 
   it('ignora valores ausentes o no válidos', () => {

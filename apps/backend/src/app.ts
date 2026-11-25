@@ -11,6 +11,7 @@ import type { NewsProvider } from './modules/news/news.provider.js';
 import type { NewsRepository } from './modules/news/news.repository.js';
 import { newsRoutes } from './modules/news/news.routes.js';
 import { createNewsService } from './modules/news/news.service.js';
+import type { NewsFeed } from './modules/news/news.types.js';
 import { uiRoutes } from './modules/ui/ui.routes.js';
 import type { WeatherProvider } from './modules/weather/weather.provider.js';
 import { weatherRoutes } from './modules/weather/weather.routes.js';
@@ -23,7 +24,7 @@ const DEFAULT_NEWS_TIME_ZONE = 'Europe/Madrid';
 
 export interface NewsOptions {
   config: NewsConfig;
-  provider: NewsProvider;
+  providers: Record<NewsFeed, NewsProvider>;
   repository: NewsRepository;
   /** Consulta los feeds al arrancar y después cada `config.refreshIntervalMs`. */
   autoRefresh?: boolean;
@@ -90,7 +91,7 @@ export async function buildApp({
 
   if (news) {
     const newsService = createNewsService({
-      provider: news.provider,
+      providers: news.providers,
       repository: news.repository,
       feedUrls: news.config.feedUrls,
       rotationSize: news.config.rotationSize,

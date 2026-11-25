@@ -135,10 +135,10 @@ describe('useDashboardCycle', () => {
     expect(result.current).toMatchObject({ view: 'weather', weatherPage: 1, tick });
   });
 
-  it('recorre nacional, internacional y mercados y reinicia el ciclo', async () => {
+  it('recorre nacional, internacional, economía y mercados y reinicia el ciclo', async () => {
     renderCycle();
 
-    for (let block = 0; block < 4; block += 1) {
+    for (let block = 0; block < 5; block += 1) {
       await finishWeatherBlock();
       await finishNewsBlock();
     }
@@ -146,6 +146,7 @@ describe('useDashboardCycle', () => {
     expect(vi.mocked(fetchNewsRotation).mock.calls.map(([feed]) => feed)).toEqual([
       'national',
       'international',
+      'economy',
       'markets',
       'national',
     ]);

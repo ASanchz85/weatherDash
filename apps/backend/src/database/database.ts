@@ -31,6 +31,25 @@ const MIGRATIONS: readonly string[] = [
      has_been_shown  INTEGER NOT NULL DEFAULT 0 CHECK (has_been_shown IN (0, 1))
    ) STRICT;
    CREATE INDEX news_feed_pub_date ON news (feed, pub_date DESC)`,
+  // SQLite no permite modificar un CHECK: se recrea la tabla. Las noticias de markets venían de otro proveedor y se descartan.
+  `CREATE TABLE news_v3 (
+     id              INTEGER PRIMARY KEY AUTOINCREMENT,
+     feed            TEXT    NOT NULL CHECK (feed IN ('national', 'international', 'economy', 'markets')),
+     title           TEXT    NOT NULL,
+     link            TEXT    NOT NULL UNIQUE,
+     description     TEXT    NOT NULL,
+     enclosure_url   TEXT    NOT NULL,
+     guid            TEXT    NOT NULL,
+     pub_date        INTEGER NOT NULL,
+     category        TEXT    NOT NULL,
+     has_been_shown  INTEGER NOT NULL DEFAULT 0 CHECK (has_been_shown IN (0, 1))
+   ) STRICT;
+   INSERT INTO news_v3 (id, feed, title, link, description, enclosure_url, guid, pub_date, category, has_been_shown)
+     SELECT id, feed, title, link, description, enclosure_url, guid, pub_date, category, has_been_shown
+     FROM news WHERE feed <> 'markets';
+   DROP TABLE news;
+   ALTER TABLE news_v3 RENAME TO news;
+   CREATE INDEX news_feed_pub_date ON news (feed, pub_date DESC)`,
 ];
 
 /** Abre (o crea) la base de datos y aplica las migraciones pendientes. */

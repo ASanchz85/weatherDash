@@ -1,16 +1,12 @@
 import { XMLParser } from 'fast-xml-parser';
 import { z } from 'zod';
 
+import { fetchFeedText, NewsProviderError, type FeedRequestOptions } from './news.http.js';
 import type { ParsedNewsItem } from './news.types.js';
 
-export class NewsProviderError extends Error {
-  override readonly name = 'NewsProviderError';
-}
+export { NewsProviderError };
 
-export interface NewsProviderOptions {
-  requestTimeoutMs: number;
-  fetchFn?: typeof fetch;
-}
+export type NewsProviderOptions = FeedRequestOptions;
 
 export interface NewsProvider {
   /** Descarga un feed RSS y devuelve sus noticias válidas; las que no traen imagen se descartan. */
@@ -80,25 +76,10 @@ export function parseNewsFeed(xml: string): ParsedNewsItem[] {
   });
 }
 
-export function createNewsProvider({ requestTimeoutMs, fetchFn = fetch }: NewsProviderOptions): NewsProvider {
+export function createNewsProvider(options: NewsProviderOptions): NewsProvider {
   return {
     async fetchFeed(url) {
-      let response: Response;
-      try {
-        response = await fetchFn(url, { signal: AbortSignal.timeout(requestTimeoutMs) });
-      } catch (error) {
-        const reason =
-          error instanceof Error && error.name === 'TimeoutError'
-            ? `timeout tras ${requestTimeoutMs} ms`
-            : 'error de red';
-        throw new NewsProviderError(`El feed de noticias no responde (${reason})`, { cause: error });
-      }
-
-      if (!response.ok) {
-        throw new NewsProviderError(`El feed de noticias respondió con estado HTTP ${response.status}`);
-      }
-
-      return parseNewsFeed(await response.text());
+      return parseNewsFeed(await fetchFeedText(url, options));
     },
   };
 }

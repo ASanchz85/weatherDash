@@ -55,6 +55,7 @@ describe('parseNewsRotation', () => {
 
   it('acepta una rotación sin noticias', () => {
     expect(parseNewsRotation({ feed: 'markets', size: 5, items: [] })).toEqual({ feed: 'markets', size: 5, items: [] });
+    expect(parseNewsRotation({ feed: 'economy', size: 5, items: [] })).toEqual({ feed: 'economy', size: 5, items: [] });
   });
 
   it('rechaza formatos inesperados', () => {

@@ -6,6 +6,7 @@ import { ROOT_ENV_PATH } from './config/paths.js';
 import { openDatabase } from './database/database.js';
 import { createSqliteSnapshotStorage } from './database/sqlite-snapshot-storage.js';
 import { createOpenMeteoAirQualityProvider } from './modules/air-quality/air-quality.provider.js';
+import { createExpansionProvider } from './modules/news/expansion/expansion.provider.js';
 import { createNewsProvider } from './modules/news/news.provider.js';
 import { createNewsRepository } from './modules/news/news.repository.js';
 import { createOpenMeteoProvider } from './modules/weather/weather.provider.js';
@@ -15,6 +16,8 @@ loadDotenv({ path: ROOT_ENV_PATH, quiet: true });
 const config = loadConfig();
 const { requestTimeoutMs } = config.weather;
 const database = openDatabase(config.databasePath);
+const europaPress = createNewsProvider({ requestTimeoutMs: config.news.requestTimeoutMs });
+const expansion = createExpansionProvider({ requestTimeoutMs: config.news.requestTimeoutMs });
 
 const app = await buildApp({
   weatherConfig: config.weather,
@@ -23,7 +26,7 @@ const app = await buildApp({
   airQualityProvider: createOpenMeteoAirQualityProvider({ requestTimeoutMs }),
   news: {
     config: config.news,
-    provider: createNewsProvider({ requestTimeoutMs: config.news.requestTimeoutMs }),
+    providers: { national: europaPress, international: europaPress, economy: expansion, markets: expansion },
     repository: createNewsRepository(database),
     autoRefresh: true,
   },
