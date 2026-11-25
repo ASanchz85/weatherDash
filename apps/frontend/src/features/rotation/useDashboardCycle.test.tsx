@@ -97,25 +97,31 @@ describe('useDashboardCycle', () => {
     expect(result.current).toMatchObject({ view: 'weather', weatherPage: 0 });
   });
 
-  it('con v\u00eddeo disponible lo muestra en lugar de la diapositiva \u00abTiempo\u00bb y sigue al terminar', async () => {
+  it('con vídeo del tiempo lo muestra tras la diapositiva «Tiempo» y sigue al terminar', async () => {
     const { result } = renderCycle({ availableVideos: ['weather'] });
     await finishWeatherBlock();
     await advance(SLIDE_DURATION_MS);
     for (let item = 0; item < 3; item += 1) await advance(NEWS_ITEM_MS);
+    expect(result.current).toMatchObject({ view: 'slide', slideTitle: 'Tiempo' });
 
+    await advance(SLIDE_DURATION_MS);
     expect(result.current).toMatchObject({ view: 'video', videoId: 'weather' });
 
     act(() => result.current.finishVideo());
     expect(result.current).toMatchObject({ view: 'weather', weatherPage: 0 });
-    // Sin vídeo del feed, su diapositiva sigue existiendo: solo se sustituye la de «Tiempo».
+    // Sin vídeo del feed, tras su diapositiva pasan directamente las noticias.
     await finishWeatherBlock();
     expect(result.current).toMatchObject({ view: 'slide', slideTitle: 'Internacional' });
+    await advance(SLIDE_DURATION_MS);
+    expect(result.current.view).toBe('news');
   });
 
-  it('con vídeo del feed lo muestra en lugar de su diapositiva y después pasa a las noticias', async () => {
+  it('con vídeo del feed lo muestra tras su diapositiva y después pasa a las noticias', async () => {
     const { result } = renderCycle({ availableVideos: ['national'] });
     await finishWeatherBlock();
+    expect(result.current).toMatchObject({ view: 'slide', slideTitle: 'Nacional' });
 
+    await advance(SLIDE_DURATION_MS);
     expect(result.current).toMatchObject({ view: 'video', videoId: 'national' });
     expect(result.current.news).not.toBeNull();
 
@@ -127,6 +133,7 @@ describe('useDashboardCycle', () => {
   it('el vídeo del feed continúa a las noticias si nunca termina', async () => {
     const { result } = renderCycle({ availableVideos: ['national'] });
     await finishWeatherBlock();
+    await advance(SLIDE_DURATION_MS);
     expect(result.current.view).toBe('video');
 
     await advance(VIDEO_FALLBACK_MS);
@@ -138,6 +145,7 @@ describe('useDashboardCycle', () => {
     await finishWeatherBlock();
     await advance(SLIDE_DURATION_MS);
     for (let item = 0; item < 3; item += 1) await advance(NEWS_ITEM_MS);
+    await advance(SLIDE_DURATION_MS);
     expect(result.current.view).toBe('video');
 
     await advance(VIDEO_FALLBACK_MS - 1);
