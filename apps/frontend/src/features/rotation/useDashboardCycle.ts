@@ -67,7 +67,7 @@ type Action =
   | { type: 'advance'; weatherSteps: number; videos: readonly VideoId[] }
   | { type: 'videoFinished' }
   | { type: 'pin'; pinnedFeed: NewsFeedId | null; lockedFeed: NewsFeedId | null }
-  | { type: 'loaded'; rotation: NewsRotation | null; videos: readonly VideoId[] };
+  | { type: 'loaded'; rotation: NewsRotation | null };
 
 const WEATHER_SLIDE_TITLE = 'Tiempo';
 const NO_VIDEOS: readonly VideoId[] = [];
@@ -102,9 +102,6 @@ function reduce(state: State, action: Action): State {
       return next({ phase: 'weather', weatherStep: 0, rotation: null, feedIndex: nextFeedIndex(state.feedIndex) });
     }
     if (state.pinned) return next({ phase: 'news', rotation, itemIndex: 0 });
-    if (action.videos.includes(rotation.feed)) {
-      return next({ phase: 'video', videoId: rotation.feed, videoNext: 'news', rotation, itemIndex: 0 });
-    }
     return next({
       phase: 'slide',
       slideTitle: NEWS_FEED_LABELS[rotation.feed],
@@ -124,10 +121,14 @@ function reduce(state: State, action: Action): State {
       return state.weatherStep + 1 < action.weatherSteps
         ? next({ weatherStep: state.weatherStep + 1 })
         : next({ phase: 'loading' });
-    case 'slide':
-      return state.slideNext === 'news'
-        ? next({ phase: 'news', itemIndex: 0 })
-        : next({ phase: 'weather', weatherStep: 0 });
+    case 'slide': {
+      // El vídeo de la sección, si existe, sigue a su diapositiva.
+      const videoId: VideoId = state.slideNext === 'news' && state.rotation ? state.rotation.feed : 'weather';
+      if (action.videos.includes(videoId)) {
+        return next({ phase: 'video', videoId, videoNext: state.slideNext });
+      }
+      return afterVideo({ ...state, videoNext: state.slideNext }, next);
+    }
     case 'video':
       return afterVideo(state, next);
     case 'news': {
@@ -137,9 +138,7 @@ function reduce(state: State, action: Action): State {
       // Con el feed bloqueado, al terminar las noticias se pide la siguiente tanda del mismo feed.
       if (state.locked) return next({ phase: 'loading' });
       const feedIndex = nextFeedIndex(state.feedIndex);
-      return action.videos.includes('weather')
-        ? next({ phase: 'video', videoId: 'weather', videoNext: 'weather', feedIndex })
-        : next({ phase: 'slide', slideTitle: WEATHER_SLIDE_TITLE, slideNext: 'weather', feedIndex });
+      return next({ phase: 'slide', slideTitle: WEATHER_SLIDE_TITLE, slideNext: 'weather', feedIndex });
     }
     case 'loading':
       return state;
@@ -237,9 +236,9 @@ export function useDashboardCycle({
     const controller = new AbortController();
     const feed = NEWS_FEED_IDS[state.feedIndex] ?? NEWS_FEED_IDS[0];
     fetchNewsRotation(feed, controller.signal)
-      .then((rotation) => dispatch({ type: 'loaded', rotation, videos: videos.current }))
+      .then((rotation) => dispatch({ type: 'loaded', rotation }))
       .catch(() => {
-        if (!controller.signal.aborted) dispatch({ type: 'loaded', rotation: null, videos: videos.current });
+        if (!controller.signal.aborted) dispatch({ type: 'loaded', rotation: null });
       });
 
     return () => controller.abort();

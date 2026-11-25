@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from '../../App';
-import { ROTATION_FADE_MS } from '../../config';
+import { ROTATION_FADE_MS, SLIDE_DURATION_MS } from '../../config';
 import { fetchAirQuality } from '../../services/airQualityApi';
 import { fetchUiConfig } from '../../services/configApi';
 import { fetchNewsRotation } from '../../services/newsApi';
@@ -71,16 +71,19 @@ describe('rotación completa del dashboard', () => {
     vi.mocked(fetchNewsRotation).mockReset();
   });
 
-  it('alterna tiempo, vídeo, noticias y vídeo sin volver a consultar el tiempo', async () => {
+  it('alterna tiempo, diapositiva, vídeo y noticias sin volver a consultar el tiempo', async () => {
     render(<App />);
     await advance(0);
     expect(screen.getByRole('region', { name: 'Fecha y hora' })).toBeInTheDocument();
 
-    // Dos vueltas de las dos vistas del tiempo y después el vídeo del feed nacional.
+    // Dos vueltas de las dos vistas del tiempo, la diapositiva del feed nacional y su vídeo.
     for (let step = 0; step < 4; step += 1) await advance(ROTATION_INTERVAL_MS);
     await advance(ROTATION_FADE_MS);
-    expect(screen.queryByRole('heading', { level: 1, name: 'Nacional' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Nacional' })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Fecha y hora' })).not.toBeInTheDocument();
+    expect(document.querySelector('video')).toBeNull();
+
+    await showNextStage(SLIDE_DURATION_MS);
     const feedVideo = document.querySelector('video');
     expect(feedVideo).not.toBeNull();
     expect(feedVideo?.getAttribute('src')).toContain('news-national');
@@ -111,10 +114,11 @@ describe('rotación completa del dashboard', () => {
     expect(within(side).getByText('Titular 2').closest('li')).toHaveAttribute('aria-current', 'true');
     expect(within(side).getByText('Titular 1').closest('li')).not.toHaveAttribute('aria-current');
 
-    // Tras la última noticia el vídeo sustituye a la diapositiva «Tiempo»; al terminar vuelve el dashboard meteorológico.
+    // Tras la última noticia, la diapositiva «Tiempo» y su vídeo; al terminar vuelve el dashboard meteorológico.
     await showNextStage(NEWS_ITEM_MS);
     await showNextStage(NEWS_ITEM_MS);
-    expect(screen.queryByRole('heading', { level: 1, name: 'Tiempo' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Tiempo' })).toBeInTheDocument();
+    await showNextStage(SLIDE_DURATION_MS);
     const video = document.querySelector('video');
     expect(video).not.toBeNull();
     expect(video?.muted).toBe(true);
