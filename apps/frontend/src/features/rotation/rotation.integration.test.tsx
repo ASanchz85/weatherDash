@@ -125,4 +125,32 @@ describe('rotación completa del dashboard', () => {
     expect(fetchUiConfig).toHaveBeenCalledTimes(1);
     expect(fetchNewsRotation).toHaveBeenCalledTimes(1);
   });
+
+  it('con un feed fijado en la configuración rota sus noticias sin diapositivas ni salir del feed', async () => {
+    vi.mocked(fetchUiConfig).mockResolvedValue({
+      rotationIntervalMs: ROTATION_INTERVAL_MS,
+      newsItemDurationMs: NEWS_ITEM_MS,
+      pinnedScreen: { page: null, feed: 'economy' },
+    });
+    render(<App />);
+    await advance(0);
+
+    expect(fetchNewsRotation).toHaveBeenCalledTimes(1);
+    expect(fetchNewsRotation).toHaveBeenCalledWith('economy', expect.any(AbortSignal));
+    await advance(ROTATION_FADE_MS * 2);
+    const hero = () => within(screen.getByRole('region', { name: 'Noticia destacada' }));
+    expect(hero().getByRole('heading', { name: 'Titular 1' })).toBeInTheDocument();
+
+    // La noticia destacada sigue avanzando cada UI_NEWS_ITEM_DURATION.
+    await showNextStage(NEWS_ITEM_MS);
+    expect(hero().getByRole('heading', { name: 'Titular 2' })).toBeInTheDocument();
+
+    // Tras la última se pide otra tanda del mismo feed, sin pasar por el tiempo ni por una diapositiva.
+    await showNextStage(NEWS_ITEM_MS);
+    await showNextStage(NEWS_ITEM_MS);
+    expect(fetchNewsRotation).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetchNewsRotation).mock.calls.map(([feed]) => feed)).toEqual(['economy', 'economy']);
+    expect(screen.queryByRole('region', { name: 'Fecha y hora' })).not.toBeInTheDocument();
+    expect(hero().getByRole('heading', { name: 'Titular 1' })).toBeInTheDocument();
+  });
 });

@@ -102,6 +102,33 @@ describe('App', () => {
       expect(within(forecast).queryByRole('listitem')).not.toBeInTheDocument();
       expect(fetchWeather).toHaveBeenCalledTimes(1);
     });
+
+    it('fija la página del tiempo indicada por la configuración del backend', async () => {
+      vi.mocked(fetchUiConfig).mockResolvedValue({
+        rotationIntervalMs: 300000,
+        newsItemDurationMs: 60000,
+        pinnedScreen: { page: 1, feed: null },
+      });
+      vi.mocked(fetchWeather).mockResolvedValue(buildWeatherData());
+      await renderApp();
+
+      // La configuración llega tras el primer render y la página fijada entra con el fundido habitual.
+      expect(await screen.findByText('Viento y calidad del aire', {}, { timeout: 2000 })).toBeInTheDocument();
+    });
+
+    it('los parámetros de la URL mandan sobre la pantalla fijada en el backend', async () => {
+      window.history.replaceState(null, '', '/?page=0');
+      vi.mocked(fetchUiConfig).mockResolvedValue({
+        rotationIntervalMs: 300000,
+        newsItemDurationMs: 60000,
+        pinnedScreen: { page: 1, feed: null },
+      });
+      vi.mocked(fetchWeather).mockResolvedValue(buildWeatherData());
+      const side = await renderApp();
+
+      expect(within(side).getByText('Parcialmente nuboso')).toBeInTheDocument();
+      expect(within(side).queryByText('Viento y calidad del aire')).not.toBeInTheDocument();
+    });
   });
 
   describe('tema del hero', () => {

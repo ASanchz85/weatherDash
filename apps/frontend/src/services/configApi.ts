@@ -1,7 +1,14 @@
 import { UI_CONFIG_ENDPOINT } from '../config';
+import { NEWS_FEED_IDS, type NewsFeedId } from '../types/news';
 
 export class ConfigApiError extends Error {
   override readonly name = 'ConfigApiError';
+}
+
+/** Pantalla fijada desde el backend: una página del tiempo o la vista de un feed de noticias. */
+export interface PinnedScreen {
+  page: number | null;
+  feed: NewsFeedId | null;
 }
 
 export interface UiConfig {
@@ -9,10 +16,23 @@ export interface UiConfig {
   rotationIntervalMs: number;
   /** Tiempo que cada noticia permanece resaltada. */
   newsItemDurationMs: number;
+  /** Si existe, solo se muestra esa pantalla, sin rotación ni diapositivas. */
+  pinnedScreen?: PinnedScreen | null;
 }
 
 function isNonNegativeNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+/** `weather-N` (N desde 1) o `news-<feed>`; cualquier otro valor se ignora y se muestran todas las pantallas. */
+export function parsePinnedScreen(value: unknown): PinnedScreen | null {
+  if (typeof value !== 'string') return null;
+
+  const weather = /^weather-([1-9]\d*)$/.exec(value);
+  if (weather) return { page: Number(weather[1]) - 1, feed: null };
+
+  const feed = NEWS_FEED_IDS.find((candidate) => `news-${candidate}` === value);
+  return feed ? { page: null, feed } : null;
 }
 
 export function parseUiConfig(value: unknown): UiConfig {
@@ -24,7 +44,8 @@ export function parseUiConfig(value: unknown): UiConfig {
   if (!isNonNegativeNumber(rotationIntervalMs) || !(typeof newsItemDurationMs === 'number' && newsItemDurationMs > 0)) {
     throw new ConfigApiError('Configuración de interfaz con formato inesperado');
   }
-  return { rotationIntervalMs, newsItemDurationMs };
+  const pinnedScreen = parsePinnedScreen('pinnedScreen' in value ? value.pinnedScreen : undefined);
+  return pinnedScreen ? { rotationIntervalMs, newsItemDurationMs, pinnedScreen } : { rotationIntervalMs, newsItemDurationMs };
 }
 
 export async function fetchUiConfig(signal?: AbortSignal): Promise<UiConfig> {

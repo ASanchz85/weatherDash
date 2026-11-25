@@ -13,6 +13,7 @@ export const uiRoutes: FastifyPluginAsync<UiRoutesOptions> = async (app, { uiCon
     return {
       rotationIntervalMs: uiConfig.rotationIntervalMs,
       newsItemDurationMs: uiConfig.newsItemDurationMs,
+      pinnedScreen: uiConfig.pinnedScreen,
     };
   });
 };

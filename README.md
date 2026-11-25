@@ -118,6 +118,7 @@ El backend lee el fichero `.env` de la raíz del repositorio (ver `.env.example`
 | `WEATHER_REQUEST_TIMEOUT`        | `8000`          | Timeout de cada petición a Open-Meteo en ms.                                      |
 | `UI_ROTATION_INTERVAL`           | `300000`        | Tiempo que dura cada vista del tiempo en ms (5 minutos). `0` desactiva toda la rotación (también las noticias); si no es 0, mínimo 10000. |
 | `UI_NEWS_ITEM_DURATION`          | `60000`         | Tiempo que cada noticia permanece resaltada en el hero en ms (1 minuto); mínimo 5000. |
+| `UI_PINNED_SCREEN`               | `0`             | Bloquea la pantalla mostrada, sin rotación ni diapositivas (pruebas visuales). `0` muestra todas; opciones: `weather-1` (tiempo y semana), `weather-2` (viento, aire y próximas horas), `news-national`, `news-international`, `news-economy`, `news-markets` (el feed se queda fijo, sin diapositivas, y sus noticias siguen rotando cada `UI_NEWS_ITEM_DURATION`; al terminar la tanda se pide otra del mismo feed). Un valor distinto es un error de configuración. Los parámetros de la URL (`?page`, `?feed`) tienen prioridad. |
 | `NEWS_FEED_NATIONAL_URL`         | Europa Press `ch=66`  | RSS de la rotación Nacional.                                              |
 | `NEWS_FEED_INTERNATIONAL_URL`    | Europa Press `ch=69`  | RSS de la rotación Internacional.                                         |
 | `NEWS_FEED_MARKETS_URL`          | Expansión `mercados.xml` | RSS de la rotación Mercados.                                          |
@@ -203,10 +204,10 @@ apps/
 Configuración de la interfaz, leída en tiempo de ejecución. Sin caché.
 
 ```json
-{ "rotationIntervalMs": 300000, "newsItemDurationMs": 60000 }
+{ "rotationIntervalMs": 300000, "newsItemDurationMs": 60000, "pinnedScreen": null }
 ```
 
-`rotationIntervalMs = 0` indica que la rotación está desactivada.
+`rotationIntervalMs = 0` indica que la rotación está desactivada. `pinnedScreen` es `null` o la pantalla fijada con `UI_PINNED_SCREEN` (p. ej. `"news-economy"`).
 
 ### `POST /api/news/:feed/rotation`
 

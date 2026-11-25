@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ConfigApiError, fetchUiConfig, parseUiConfig } from './configApi';
+import { ConfigApiError, fetchUiConfig, parsePinnedScreen, parseUiConfig } from './configApi';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -22,6 +22,35 @@ describe('parseUiConfig', () => {
     expect(() => parseUiConfig({ rotationIntervalMs: '300000', newsItemDurationMs: 60000 })).toThrow(ConfigApiError);
     expect(() => parseUiConfig({ rotationIntervalMs: -1, newsItemDurationMs: 60000 })).toThrow(ConfigApiError);
     expect(() => parseUiConfig({ rotationIntervalMs: 0, newsItemDurationMs: 0 })).toThrow(ConfigApiError);
+  });
+});
+
+describe('parsePinnedScreen', () => {
+  it('traduce weather-N a la página N-1 y news-<feed> al feed', () => {
+    expect(parsePinnedScreen('weather-1')).toEqual({ page: 0, feed: null });
+    expect(parsePinnedScreen('weather-2')).toEqual({ page: 1, feed: null });
+    expect(parsePinnedScreen('news-economy')).toEqual({ page: null, feed: 'economy' });
+    expect(parsePinnedScreen('news-markets')).toEqual({ page: null, feed: 'markets' });
+  });
+
+  it.each([null, undefined, 0, '0', '', 'weather-0', 'weather', 'news-deportes', 'slide'])(
+    'ignora %j y muestra todas las pantallas',
+    (value) => {
+      expect(parsePinnedScreen(value)).toBeNull();
+    },
+  );
+});
+
+describe('parseUiConfig con pantalla fijada', () => {
+  it('incluye la pantalla fijada y la omite si no hay o no es válida', () => {
+    const times = { rotationIntervalMs: 300000, newsItemDurationMs: 60000 };
+
+    expect(parseUiConfig({ ...times, pinnedScreen: 'news-economy' })).toEqual({
+      ...times,
+      pinnedScreen: { page: null, feed: 'economy' },
+    });
+    expect(parseUiConfig({ ...times, pinnedScreen: null })).toEqual(times);
+    expect(parseUiConfig({ ...times, pinnedScreen: 'otra' })).toEqual(times);
   });
 });
 

@@ -22,12 +22,16 @@ export function App() {
   const { weather, airQuality } = useDashboardData();
   const uiConfig = useUiConfig();
   const [overrides] = useState(() => parseDebugOverrides(window.location.search));
+  // Los parámetros de la URL mandan sobre la pantalla fijada en el backend (UI_PINNED_SCREEN).
+  const urlPins = overrides.page !== null || overrides.feed !== null;
+  const configPin = urlPins ? null : (uiConfig?.pinnedScreen ?? null);
 
   const cycle = useDashboardCycle({
     weatherPageCount: WEATHER_PAGE_COUNT,
     uiConfig,
-    pinnedPage: overrides.page,
+    pinnedPage: configPin ? configPin.page : overrides.page,
     pinnedFeed: overrides.feed,
+    lockedFeed: configPin ? configPin.feed : null,
     videoAvailable: INTRO_VIDEO_URL !== null,
   });
   const desiredTheme = weather.status === 'ready' ? themeFromIsDay(weather.data.current.isDay) : null;

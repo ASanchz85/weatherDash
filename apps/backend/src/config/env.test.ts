@@ -2,6 +2,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { NEWS_FEEDS } from '../modules/news/news.types.js';
 import { ConfigError, loadConfig } from './env.js';
 import { DEFAULT_DATABASE_PATH, ROOT_PATH } from './paths.js';
 
@@ -18,7 +19,7 @@ describe('loadConfig', () => {
       coordinates: null,
       refreshIntervalMs: 900000,
     });
-    expect(config.ui).toEqual({ rotationIntervalMs: 300000, newsItemDurationMs: 60000 });
+    expect(config.ui).toEqual({ rotationIntervalMs: 300000, newsItemDurationMs: 60000, pinnedScreen: null });
     expect(config.news).toEqual({
       feedUrls: {
         national: 'https://www.europapress.es/rss/rss.aspx?ch=66',
@@ -52,6 +53,27 @@ describe('loadConfig', () => {
     expect(loadConfig({ UI_ROTATION_INTERVAL: '60000' }).ui.rotationIntervalMs).toBe(60000);
     expect(loadConfig({ UI_ROTATION_INTERVAL: '0' }).ui.rotationIntervalMs).toBe(0);
     expect(loadConfig({ UI_ROTATION_INTERVAL: '' }).ui.rotationIntervalMs).toBe(300000);
+  });
+
+  describe('UI_PINNED_SCREEN', () => {
+    it('por defecto no fija ninguna pantalla: 0 y vacío muestran todas', () => {
+      expect(loadConfig({}).ui.pinnedScreen).toBeNull();
+      expect(loadConfig({ UI_PINNED_SCREEN: '0' }).ui.pinnedScreen).toBeNull();
+      expect(loadConfig({ UI_PINNED_SCREEN: '' }).ui.pinnedScreen).toBeNull();
+    });
+
+    it.each(['weather-1', 'weather-2'])('acepta la pantalla del tiempo %s', (screen) => {
+      expect(loadConfig({ UI_PINNED_SCREEN: screen }).ui.pinnedScreen).toBe(screen);
+    });
+
+    it.each(NEWS_FEEDS)('acepta la pantalla de noticias del feed %s', (feed) => {
+      expect(loadConfig({ UI_PINNED_SCREEN: `news-${feed}` }).ui.pinnedScreen).toBe(`news-${feed}`);
+    });
+
+    it('rechaza una pantalla desconocida listando las opciones', () => {
+      expect(() => loadConfig({ UI_PINNED_SCREEN: 'weather-3' })).toThrow(ConfigError);
+      expect(() => loadConfig({ UI_PINNED_SCREEN: 'weather-3' })).toThrow(/UI_PINNED_SCREEN/);
+    });
   });
 
   it('interpreta coordenadas explícitas y trata las variables vacías como no definidas', () => {

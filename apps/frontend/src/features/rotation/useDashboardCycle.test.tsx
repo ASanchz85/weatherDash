@@ -207,6 +207,100 @@ describe('useDashboardCycle', () => {
     expect(result.current.news?.activeIndex).toBe(0);
   });
 
+  describe('feed bloqueado (lockedFeed)', () => {
+    it('rota las noticias del feed y, al terminarlas, pide otra tanda del mismo feed sin diapositivas', async () => {
+      const { result } = renderCycle({ lockedFeed: 'economy' });
+
+      await advance(0);
+      expect(result.current).toMatchObject({ view: 'news', isRotating: false });
+      expect(result.current.news).toMatchObject({ activeIndex: 0 });
+
+      await advance(NEWS_ITEM_MS);
+      expect(result.current.news?.activeIndex).toBe(1);
+      await advance(NEWS_ITEM_MS);
+      expect(result.current.news?.activeIndex).toBe(2);
+
+      await advance(NEWS_ITEM_MS);
+      expect(vi.mocked(fetchNewsRotation).mock.calls.map(([feed]) => feed)).toEqual(['economy', 'economy']);
+      expect(result.current).toMatchObject({ view: 'news' });
+      expect(result.current.news).toMatchObject({ activeIndex: 0 });
+    });
+
+    it('no vuelve al tiempo ni cambia de feed aunque pase mucho tiempo', async () => {
+      const { result } = renderCycle({ lockedFeed: 'markets' });
+
+      await advance(0);
+      for (let step = 0; step < 12; step += 1) await advance(NEWS_ITEM_MS);
+
+      expect(result.current.view).toBe('news');
+      expect(new Set(vi.mocked(fetchNewsRotation).mock.calls.map(([feed]) => feed))).toEqual(new Set(['markets']));
+    });
+
+    it('mantiene la vista y reintenta al terminar si falla la siguiente consulta', async () => {
+      const { result } = renderCycle({ lockedFeed: 'economy' });
+      await advance(0);
+      vi.mocked(fetchNewsRotation).mockRejectedValueOnce(new Error('sin conexión'));
+
+      for (let item = 0; item < 3; item += 1) await advance(NEWS_ITEM_MS);
+      expect(result.current).toMatchObject({ view: 'news' });
+      expect(result.current.news).toMatchObject({ activeIndex: 0 });
+
+      for (let item = 0; item < 3; item += 1) await advance(NEWS_ITEM_MS);
+      expect(fetchNewsRotation).toHaveBeenCalledTimes(3);
+    });
+
+    it('con la rotación desactivada (UI_ROTATION_INTERVAL=0) no avanza', async () => {
+      const { result } = renderCycle({ lockedFeed: 'economy', uiConfig: { ...uiConfig, rotationIntervalMs: 0 } });
+
+      await advance(NEWS_ITEM_MS * 5);
+
+      expect(result.current.news?.activeIndex).toBe(0);
+      expect(fetchNewsRotation).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('pantalla fijada después del montaje', () => {
+    interface Pins {
+      pinnedPage: number | null;
+      pinnedFeed: NewsFeedId | null;
+    }
+
+    function renderPinnable() {
+      const initialProps: Pins = { pinnedPage: null, pinnedFeed: null };
+      return renderHook((pins: Pins) => useDashboardCycle({ weatherPageCount: 2, uiConfig, ...pins }), {
+        initialProps,
+      });
+    }
+
+    it('muestra el feed sin diapositiva ni rotación cuando se fija tras cargar la configuración', async () => {
+      const { result, rerender } = renderPinnable();
+      await advance(ROTATION_MS);
+      expect(fetchNewsRotation).not.toHaveBeenCalled();
+
+      rerender({ pinnedPage: null, pinnedFeed: 'economy' });
+      await advance(0);
+
+      expect(fetchNewsRotation).toHaveBeenCalledTimes(1);
+      expect(fetchNewsRotation).toHaveBeenCalledWith('economy', expect.any(AbortSignal));
+      expect(result.current).toMatchObject({ view: 'news', isRotating: false });
+      expect(result.current.news?.rotation.feed).toBe('economy');
+
+      await advance(NEWS_ITEM_MS * 10);
+      expect(result.current.view).toBe('news');
+      expect(fetchNewsRotation).toHaveBeenCalledTimes(1);
+    });
+
+    it('fija la página del tiempo sin tocar las noticias', async () => {
+      const { result, rerender } = renderPinnable();
+
+      rerender({ pinnedPage: 1, pinnedFeed: null });
+      await advance(ROTATION_MS * 20);
+
+      expect(result.current).toMatchObject({ view: 'weather', weatherPage: 1, isRotating: false });
+      expect(fetchNewsRotation).not.toHaveBeenCalled();
+    });
+  });
+
   it('libera los temporizadores al desmontarse', async () => {
     const { unmount } = renderCycle();
     expect(vi.getTimerCount()).toBe(1);
