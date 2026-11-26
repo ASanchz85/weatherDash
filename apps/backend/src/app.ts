@@ -7,6 +7,7 @@ import { createAirQualityService } from './modules/air-quality/air-quality.servi
 import type { AirQualitySnapshot } from './modules/air-quality/air-quality.types.js';
 import { healthRoutes } from './modules/health/health.routes.js';
 import { createLocationService } from './modules/location/location.service.js';
+import { startDailyRefresh } from './modules/news/news.daily-refresh.js';
 import type { NewsProvider } from './modules/news/news.provider.js';
 import type { NewsRepository } from './modules/news/news.repository.js';
 import { newsRoutes } from './modules/news/news.routes.js';
@@ -103,14 +104,24 @@ export async function buildApp({
 
     if (news.autoRefresh) {
       let timer: NodeJS.Timeout | undefined;
+      let stopDailyRefresh: (() => void) | undefined;
       app.addHook('onReady', async () => {
         // Los fallos ya los registra el servicio; el servidor arranca igualmente.
         const refresh = () => void newsService.refresh().catch(() => undefined);
         refresh();
         timer = setInterval(refresh, news.config.refreshIntervalMs);
         timer.unref();
+        // Las efemérides cambian a medianoche: se renuevan a las 00:01 sin esperar al refresco periódico.
+        stopDailyRefresh = startDailyRefresh({
+          refresh: () => newsService.refreshDaily(),
+          timeZone: weatherConfig.timezone ?? NEWS_DEFAULT_TIME_ZONE,
+          ...clock,
+        });
       });
-      app.addHook('onClose', async () => clearInterval(timer));
+      app.addHook('onClose', async () => {
+        clearInterval(timer);
+        stopDailyRefresh?.();
+      });
     }
   }
   if (staticDir) await app.register(staticFrontend, { root: staticDir });

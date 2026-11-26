@@ -164,10 +164,10 @@ describe('useDashboardCycle', () => {
     expect(result.current).toMatchObject({ view: 'weather', weatherPage: 1, tick });
   });
 
-  it('recorre nacional, internacional, economía, mercados y efemérides y reinicia el ciclo', async () => {
+  it('intercala las efemérides cada dos bloques de noticias y reinicia el ciclo', async () => {
     renderCycle();
 
-    for (let block = 0; block < 6; block += 1) {
+    for (let block = 0; block < 7; block += 1) {
       await finishWeatherBlock();
       await finishNewsBlock();
     }
@@ -175,6 +175,7 @@ describe('useDashboardCycle', () => {
     expect(vi.mocked(fetchNewsRotation).mock.calls.map(([feed]) => feed)).toEqual([
       'national',
       'international',
+      'commemorations',
       'economy',
       'markets',
       'commemorations',
