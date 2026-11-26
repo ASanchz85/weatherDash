@@ -15,6 +15,8 @@ interface HeroPanelProps {
   variant?: 'default' | 'news';
   /** Pie de foto discreto en la esquina inferior derecha. */
   caption?: string;
+  /** Reparte los hijos en vertical: el primero arriba y el último abajo. */
+  spread?: boolean;
   children: ReactNode;
 }
 
@@ -48,13 +50,22 @@ function PhotoLayers({ url }: { url: string | null | undefined }) {
 }
 
 /** Panel principal con una foto oscurecida para dar contraste al contenido. */
-export function HeroPanel({ label, theme = 'day', imageUrl, variant = 'default', caption, children }: HeroPanelProps) {
+export function HeroPanel({
+  label,
+  theme = 'day',
+  imageUrl,
+  variant = 'default',
+  caption,
+  spread = false,
+  children,
+}: HeroPanelProps) {
   return (
     <section
       className={styles.hero}
       aria-label={label}
       data-theme={theme}
       data-variant={variant}
+      data-spread={spread ? 'true' : undefined}
       style={ROTATION_FADE_STYLE}
     >
       <PhotoLayers url={imageUrl} />

@@ -21,6 +21,7 @@ describe('openDatabase', () => {
     const db = openDatabase(IN_MEMORY_DATABASE);
 
     expect(() => db.prepare(INSERT_NEWS).run('economy', 'https://a')).not.toThrow();
+    expect(() => db.prepare(INSERT_NEWS).run('commemorations', 'https://c')).not.toThrow();
     expect(() => db.prepare(INSERT_NEWS).run('deportes', 'https://b')).toThrow();
     db.close();
   });
@@ -52,7 +53,7 @@ describe('openDatabase', () => {
 
     expect(db.prepare('SELECT feed FROM news').pluck().all()).toEqual(['national']);
     expect(() => db.prepare(INSERT_NEWS).run('economy', 'https://e')).not.toThrow();
-    expect(db.pragma('user_version', { simple: true })).toBe(3);
+    expect(db.pragma('user_version', { simple: true })).toBe(4);
     db.close();
   });
 });

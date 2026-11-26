@@ -1,8 +1,11 @@
 import type { ServiceLogger } from '../../shared/service-logger.js';
 import type { NewsProvider } from './news.provider.js';
 import type { NewsRepository } from './news.repository.js';
-import { startOfPreviousDay } from './news.retention.js';
+import { startOfDay, startOfPreviousDay } from './news.retention.js';
 import { NEWS_FEEDS, type NewsFeed, type NewsRotation } from './news.types.js';
+
+/** Feeds cuyo contenido solo vale el día en que se publica (efemérides): se conservan hoy y se consultan una vez al día. */
+const DAILY_FEEDS: ReadonlySet<NewsFeed> = new Set<NewsFeed>(['commemorations']);
 
 export interface NewsServiceOptions {
   /** Proveedor que sabe leer el RSS de cada feed. */
@@ -35,11 +38,16 @@ export function createNewsService({
   let pending: Promise<void> | null = null;
 
   async function refreshOnce(): Promise<void> {
-    const cutoff = startOfPreviousDay(now(), timeZone);
-    repository.deleteOlderThan(cutoff);
+    const todayStart = startOfDay(now(), timeZone);
+    const yesterdayStart = startOfPreviousDay(now(), timeZone);
 
     await Promise.all(
       NEWS_FEEDS.map(async (feed) => {
+        const isDaily = DAILY_FEEDS.has(feed);
+        const cutoff = isDaily ? todayStart : yesterdayStart;
+        repository.deleteOlderThan(cutoff, feed);
+        if (isDaily && repository.hasItemsSince(feed, todayStart)) return;
+
         try {
           const items = await providers[feed].fetchFeed(feedUrls[feed]);
           repository.saveItems(
@@ -61,7 +69,8 @@ export function createNewsService({
       return pending;
     },
     nextRotation(feed) {
-      const items = repository.takeNextBatch(feed, rotationSize).map((item) => ({
+      const sinceMs = DAILY_FEEDS.has(feed) ? startOfDay(now(), timeZone) : undefined;
+      const items = repository.takeNextBatch(feed, rotationSize, sinceMs).map((item) => ({
         id: item.id,
         title: item.title,
         link: item.link,

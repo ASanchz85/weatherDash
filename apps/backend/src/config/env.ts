@@ -24,6 +24,8 @@ const DEFAULT_NEWS_FEED_URLS = {
   international: 'https://www.europapress.es/rss/rss.aspx?ch=69',
   economy: 'https://e00-expansion.uecdn.es/rss/economia.xml',
   markets: 'https://e00-expansion.uecdn.es/rss/mercados.xml',
+  // {MM} y {DD} se sustituyen por el mes y el día locales de hoy.
+  commemorations: 'https://es.wikipedia.org/api/rest_v1/feed/onthisday/events/{MM}/{DD}',
 } as const;
 
 /** Las variables vacías en .env se tratan como no definidas. */
@@ -44,6 +46,7 @@ const UI_SCREENS = [
   'news-international',
   'news-economy',
   'news-markets',
+  'news-commemorations',
 ] as const;
 export type UiScreen = (typeof UI_SCREENS)[number];
 
@@ -92,6 +95,7 @@ const envSchema = z
     NEWS_FEED_INTERNATIONAL_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.international),
     NEWS_FEED_ECONOMY_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.economy),
     NEWS_FEED_MARKETS_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.markets),
+    NEWS_FEED_COMMEMORATIONS_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.commemorations),
     NEWS_REFRESH_INTERVAL: z.preprocess(
       blankToUndefined,
       z.coerce.number().int().min(MIN_REFRESH_INTERVAL_MS).default(ONE_HOUR_MS),
@@ -134,7 +138,7 @@ export interface UiConfig {
 }
 
 export interface NewsConfig {
-  feedUrls: { national: string; international: string; economy: string; markets: string };
+  feedUrls: { national: string; international: string; economy: string; markets: string; commemorations: string };
   refreshIntervalMs: number;
   requestTimeoutMs: number;
   /** Noticias de cada rotación de un feed: las que elige la base de datos y las que muestra la card lateral. */
@@ -196,6 +200,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
         international: parsed.NEWS_FEED_INTERNATIONAL_URL,
         economy: parsed.NEWS_FEED_ECONOMY_URL,
         markets: parsed.NEWS_FEED_MARKETS_URL,
+        commemorations: parsed.NEWS_FEED_COMMEMORATIONS_URL,
       },
       refreshIntervalMs: parsed.NEWS_REFRESH_INTERVAL,
       requestTimeoutMs: parsed.WEATHER_REQUEST_TIMEOUT,

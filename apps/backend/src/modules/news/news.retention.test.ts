@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
-import { startOfPreviousDay } from './news.retention.js';
+import { localDate, startOfDay, startOfPreviousDay } from './news.retention.js';
+
+describe('startOfDay', () => {
+  it('devuelve la medianoche local del día actual', () => {
+    const now = Date.UTC(2026, 10, 24, 23, 30);
+
+    expect(new Date(startOfDay(now, 'Europe/Madrid')).toISOString()).toBe('2026-11-24T23:00:00.000Z');
+  });
+});
+
+describe('localDate', () => {
+  it('usa la fecha local y no la UTC cuando difieren', () => {
+    expect(localDate(Date.UTC(2026, 10, 25, 23, 30), 'Europe/Madrid')).toEqual({ year: 2026, month: 11, day: 26 });
+  });
+});
 
 describe('startOfPreviousDay', () => {
   it('devuelve la medianoche local del día anterior en invierno (UTC+1)', () => {

@@ -1,0 +1,15 @@
+.moon {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin: 0;
+  font-size: clamp(0.85rem, 2.2cqi, 1.6rem);
+  letter-spacing: 0.02em;
+  color: rgb(242 244 248 / 0.72);
+  text-shadow: 0 1px 10px rgb(0 0 0 / 0.5);
+}
+
+.moon svg {
+  flex: none;
+  font-size: 1.5em;
+}

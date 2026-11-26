@@ -31,6 +31,7 @@ describe('parsePinnedScreen', () => {
     expect(parsePinnedScreen('weather-2')).toEqual({ page: 1, feed: null });
     expect(parsePinnedScreen('news-economy')).toEqual({ page: null, feed: 'economy' });
     expect(parsePinnedScreen('news-markets')).toEqual({ page: null, feed: 'markets' });
+    expect(parsePinnedScreen('news-commemorations')).toEqual({ page: null, feed: 'commemorations' });
   });
 
   it.each([null, undefined, 0, '0', '', 'weather-0', 'weather', 'news-deportes', 'slide'])(

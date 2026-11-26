@@ -15,11 +15,34 @@ function zoneOffsetMs(instantMs: number, timeZone: string): number {
   return localAsUtc - Math.floor(instantMs / 1000) * 1000;
 }
 
-/** Instante en que empezó el día anterior (00:00 locales) en la zona horaria indicada. */
-export function startOfPreviousDay(nowMs: number, timeZone: string): number {
+/** Instante en que empezó el día de `nowMs` (00:00 locales) desplazado `daysBack` días atrás. */
+function startOfLocalDay(nowMs: number, timeZone: string, daysBack: number): number {
   const local = new Date(nowMs + zoneOffsetMs(nowMs, timeZone));
-  const localMidnightAsUtc = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() - 1);
+  const localMidnightAsUtc = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() - daysBack);
   // El desfase se vuelve a medir en la fecha objetivo por si hay un cambio de hora entre ambas.
   const firstGuess = localMidnightAsUtc - zoneOffsetMs(localMidnightAsUtc, timeZone);
   return localMidnightAsUtc - zoneOffsetMs(firstGuess, timeZone);
+}
+
+/** Instante en que empezó el día anterior (00:00 locales) en la zona horaria indicada. */
+export function startOfPreviousDay(nowMs: number, timeZone: string): number {
+  return startOfLocalDay(nowMs, timeZone, 1);
+}
+
+/** Instante en que empezó el día actual (00:00 locales) en la zona horaria indicada. */
+export function startOfDay(nowMs: number, timeZone: string): number {
+  return startOfLocalDay(nowMs, timeZone, 0);
+}
+
+export interface LocalDate {
+  year: number;
+  /** 1-12. */
+  month: number;
+  day: number;
+}
+
+/** Fecha de calendario de `nowMs` en la zona horaria indicada. */
+export function localDate(nowMs: number, timeZone: string): LocalDate {
+  const local = new Date(nowMs + zoneOffsetMs(nowMs, timeZone));
+  return { year: local.getUTCFullYear(), month: local.getUTCMonth() + 1, day: local.getUTCDate() };
 }

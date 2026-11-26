@@ -164,10 +164,10 @@ describe('useDashboardCycle', () => {
     expect(result.current).toMatchObject({ view: 'weather', weatherPage: 1, tick });
   });
 
-  it('recorre nacional, internacional, economía y mercados y reinicia el ciclo', async () => {
+  it('recorre nacional, internacional, economía, mercados y efemérides y reinicia el ciclo', async () => {
     renderCycle();
 
-    for (let block = 0; block < 5; block += 1) {
+    for (let block = 0; block < 6; block += 1) {
       await finishWeatherBlock();
       await finishNewsBlock();
     }
@@ -177,6 +177,7 @@ describe('useDashboardCycle', () => {
       'international',
       'economy',
       'markets',
+      'commemorations',
       'national',
     ]);
   });

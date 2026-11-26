@@ -20,7 +20,7 @@ import type { WeatherSnapshot } from './modules/weather/weather.types.js';
 import { staticFrontend } from './plugins/static.js';
 import type { SnapshotStorage } from './shared/snapshot-store.js';
 
-const DEFAULT_NEWS_TIME_ZONE = 'Europe/Madrid';
+export const NEWS_DEFAULT_TIME_ZONE = 'Europe/Madrid';
 
 export interface NewsOptions {
   config: NewsConfig;
@@ -95,7 +95,7 @@ export async function buildApp({
       repository: news.repository,
       feedUrls: news.config.feedUrls,
       rotationSize: news.config.rotationSize,
-      timeZone: weatherConfig.timezone ?? DEFAULT_NEWS_TIME_ZONE,
+      timeZone: weatherConfig.timezone ?? NEWS_DEFAULT_TIME_ZONE,
       logger: app.log,
       ...clock,
     });

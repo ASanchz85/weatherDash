@@ -1,5 +1,5 @@
 /** El orden es el del ciclo de rotación y coincide con el del backend. */
-export const NEWS_FEED_IDS = ['national', 'international', 'economy', 'markets'] as const;
+export const NEWS_FEED_IDS = ['national', 'international', 'economy', 'markets', 'commemorations'] as const;
 
 export type NewsFeedId = (typeof NEWS_FEED_IDS)[number];
 
@@ -9,6 +9,7 @@ export const NEWS_FEED_LABELS: Readonly<Record<NewsFeedId, string>> = {
   international: 'Internacional',
   economy: 'Economía',
   markets: 'Mercados',
+  commemorations: 'Efemérides',
 };
 
 /** Proveedor que publica cada feed; es el que firma el pie de foto del hero. */
@@ -17,6 +18,7 @@ export const NEWS_FEED_SOURCES: Readonly<Record<NewsFeedId, string>> = {
   international: 'Europa Press',
   economy: 'Expansión',
   markets: 'Expansión',
+  commemorations: 'Wikipedia',
 };
 
 export interface NewsItem {

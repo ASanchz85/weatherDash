@@ -3,6 +3,11 @@
   min-height: 0;
 }
 
+/* «Tal día como hoy 26 de noviembre ...» es más largo que el nombre de un feed */
+.panel .longTitle {
+  font-size: clamp(1rem, 5.6cqi, 1.5rem);
+}
+
 .headlines {
   /* --slots lo define el componente con el tamaño de la rotación: cada tarjeta mide siempre lo mismo */
   --gap: clamp(4px, 0.9vmin, 10px);

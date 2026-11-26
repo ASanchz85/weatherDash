@@ -1,11 +1,12 @@
 import { config as loadDotenv } from 'dotenv';
 
-import { buildApp } from './app.js';
+import { buildApp, NEWS_DEFAULT_TIME_ZONE } from './app.js';
 import { loadConfig } from './config/env.js';
 import { ROOT_ENV_PATH } from './config/paths.js';
 import { openDatabase } from './database/database.js';
 import { createSqliteSnapshotStorage } from './database/sqlite-snapshot-storage.js';
 import { createOpenMeteoAirQualityProvider } from './modules/air-quality/air-quality.provider.js';
+import { createCommemorationsProvider } from './modules/news/commemorations/commemorations.provider.js';
 import { createExpansionProvider } from './modules/news/expansion/expansion.provider.js';
 import { createNewsProvider } from './modules/news/news.provider.js';
 import { createNewsRepository } from './modules/news/news.repository.js';
@@ -18,6 +19,10 @@ const { requestTimeoutMs } = config.weather;
 const database = openDatabase(config.databasePath);
 const europaPress = createNewsProvider({ requestTimeoutMs: config.news.requestTimeoutMs });
 const expansion = createExpansionProvider({ requestTimeoutMs: config.news.requestTimeoutMs });
+const commemorations = createCommemorationsProvider({
+  requestTimeoutMs: config.news.requestTimeoutMs,
+  timeZone: config.weather.timezone ?? NEWS_DEFAULT_TIME_ZONE,
+});
 
 const app = await buildApp({
   weatherConfig: config.weather,
@@ -26,7 +31,13 @@ const app = await buildApp({
   airQualityProvider: createOpenMeteoAirQualityProvider({ requestTimeoutMs }),
   news: {
     config: config.news,
-    providers: { national: europaPress, international: europaPress, economy: expansion, markets: expansion },
+    providers: {
+      national: europaPress,
+      international: europaPress,
+      economy: expansion,
+      markets: expansion,
+      commemorations,
+    },
     repository: createNewsRepository(database),
     autoRefresh: true,
   },

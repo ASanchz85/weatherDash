@@ -13,9 +13,15 @@ const feedUrls: Record<NewsFeed, string> = {
   international: 'https://example.com/internacional',
   economy: 'https://example.com/economia',
   markets: 'https://example.com/mercados',
+  commemorations: 'https://example.com/efemerides/{MM}/{DD}',
 };
 
 const databases: SqliteDatabase[] = [];
+
+/** Primer segmento de la ruta de la URL de un feed. */
+function slugOf(url: string): string {
+  return new URL(url).pathname.split('/')[1] ?? '';
+}
 
 function setup(fetchFeed: NewsProvider['fetchFeed'], logger = { warn: vi.fn() }, rotationSize = 8) {
   const db = openDatabase(IN_MEMORY_DATABASE);
@@ -23,7 +29,13 @@ function setup(fetchFeed: NewsProvider['fetchFeed'], logger = { warn: vi.fn() },
   const repository = createNewsRepository(db);
   const provider: NewsProvider = { fetchFeed };
   const service = createNewsService({
-    providers: { national: provider, international: provider, economy: provider, markets: provider },
+    providers: {
+      national: provider,
+      international: provider,
+      economy: provider,
+      markets: provider,
+      commemorations: provider,
+    },
     repository,
     feedUrls,
     rotationSize,
@@ -40,12 +52,13 @@ afterEach(() => {
 
 describe('createNewsService', () => {
   it('guarda en cada feed las noticias de su URL', async () => {
-    const fetchFeed = vi.fn(async (url: string) => [buildNewsItem(url.split('/').pop() ?? '')]);
+    const fetchFeed = vi.fn(async (url: string) => [buildNewsItem(slugOf(url))]);
     const { db, service } = setup(fetchFeed);
 
     await service.refresh();
 
     expect(db.prepare('SELECT feed, title FROM news ORDER BY feed').all()).toEqual([
+      { feed: 'commemorations', title: 'Titular efemerides' },
       { feed: 'economy', title: 'Titular economia' },
       { feed: 'international', title: 'Titular internacional' },
       { feed: 'markets', title: 'Titular mercados' },
@@ -72,13 +85,14 @@ describe('createNewsService', () => {
   it('un feed que falla no impide actualizar los demás y queda registrado', async () => {
     const fetchFeed = vi.fn(async (url: string) => {
       if (url === feedUrls.international) throw new Error('caído');
-      return [buildNewsItem(url.split('/').pop() ?? '')];
+      return [buildNewsItem(slugOf(url))];
     });
     const { db, service, logger } = setup(fetchFeed);
 
     await service.refresh();
 
     expect(db.prepare('SELECT feed FROM news ORDER BY feed').pluck().all()).toEqual([
+      'commemorations',
       'economy',
       'markets',
       'national',
@@ -92,16 +106,23 @@ describe('createNewsService', () => {
 
     await Promise.all([service.refresh(), service.refresh()]);
 
-    expect(fetchFeed).toHaveBeenCalledTimes(4);
+    expect(fetchFeed).toHaveBeenCalledTimes(5);
   });
 
   it('consulta cada feed con su propio proveedor', async () => {
     const europaPress = { fetchFeed: vi.fn(async (_url: string) => [buildNewsItem('ep')]) };
     const expansion = { fetchFeed: vi.fn(async (_url: string) => [buildNewsItem('ex')]) };
+    const wikipedia = { fetchFeed: vi.fn(async (_url: string) => [buildNewsItem('wp')]) };
     const db = openDatabase(IN_MEMORY_DATABASE);
     databases.push(db);
     const service = createNewsService({
-      providers: { national: europaPress, international: europaPress, economy: expansion, markets: expansion },
+      providers: {
+        national: europaPress,
+        international: europaPress,
+        economy: expansion,
+        markets: expansion,
+        commemorations: wikipedia,
+      },
       repository: createNewsRepository(db),
       feedUrls,
       rotationSize: 8,
@@ -113,6 +134,7 @@ describe('createNewsService', () => {
 
     expect(europaPress.fetchFeed.mock.calls.map(([url]) => url)).toEqual([feedUrls.national, feedUrls.international]);
     expect(expansion.fetchFeed.mock.calls.map(([url]) => url)).toEqual([feedUrls.economy, feedUrls.markets]);
+    expect(wikipedia.fetchFeed.mock.calls.map(([url]) => url)).toEqual([feedUrls.commemorations]);
   });
 
   it('entrega la rotación con fechas ISO', async () => {
@@ -141,5 +163,53 @@ describe('createNewsService', () => {
     expect(titles()).toEqual(['Titular n3', 'Titular n2', 'Titular n1']);
     // Solo queda n0 sin mostrar: se reinicia el feed y se completa con las m\u00e1s recientes.
     expect(titles()).toEqual(['Titular n6', 'Titular n5', 'Titular n0']);
+  });
+
+  describe('feed de efemérides', () => {
+    const TODAY = Date.UTC(2026, 10, 23, 23);
+    const YESTERDAY = Date.UTC(2026, 10, 22, 23);
+
+    it('solo conserva y entrega las efemérides de hoy', async () => {
+      const { db, repository, service } = setup(async () => []);
+      repository.saveItems('commemorations', [
+        buildNewsItem('hoy', { publishedAt: TODAY }),
+        buildNewsItem('ayer', { publishedAt: YESTERDAY }),
+      ]);
+
+      expect(service.nextRotation('commemorations').items.map((item) => item.title)).toEqual(['Titular hoy']);
+
+      await service.refresh();
+
+      expect(db.prepare("SELECT title FROM news WHERE feed = 'commemorations'").pluck().all()).toEqual(['Titular hoy']);
+    });
+
+    it('no vuelve a consultar el proveedor si ya hay efemérides de hoy', async () => {
+      const fetchFeed = vi.fn(async (url: string) =>
+        url === feedUrls.commemorations ? [buildNewsItem('wp', { publishedAt: TODAY })] : [],
+      );
+      const { service } = setup(fetchFeed);
+
+      await service.refresh();
+      await service.refresh();
+
+      expect(fetchFeed.mock.calls.filter(([url]) => url === feedUrls.commemorations)).toHaveLength(1);
+    });
+
+    it('reintenta en el siguiente refresco si el proveedor falló', async () => {
+      let failing = true;
+      const fetchFeed = vi.fn(async (url: string) => {
+        if (url !== feedUrls.commemorations) return [];
+        if (failing) throw new Error('caído');
+        return [buildNewsItem('wp', { publishedAt: TODAY })];
+      });
+      const { service } = setup(fetchFeed);
+
+      await service.refresh();
+      expect(service.nextRotation('commemorations').items).toEqual([]);
+
+      failing = false;
+      await service.refresh();
+      expect(service.nextRotation('commemorations').items).toHaveLength(1);
+    });
   });
 });
