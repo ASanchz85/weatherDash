@@ -3,11 +3,11 @@ import type { CSSProperties } from 'react';
 import { SidePanel } from '../../components/SidePanel';
 import { NEWS_FEED_LABELS, type NewsRotation } from '../../types/news';
 import detailsStyles from '../weather/WeatherDetails.module.css';
-import { formatCommemorationsTitle } from './newsFormat';
 import styles from './NewsSidePanel.module.css';
 
 /** Hasta este número de huecos, cada titular tiene altura para tres líneas; con más, para dos. */
 const ROOMY_SLOTS = 5;
+const COMMEMORATIONS_PANEL_TITLE = 'Tal día como hoy...';
 
 interface NewsSidePanelProps {
   rotation: NewsRotation;
@@ -15,11 +15,9 @@ interface NewsSidePanelProps {
   activeIndex: number;
 }
 
-/** Las efemérides se titulan con la fecha de la que hablan; el resto de feeds, con su nombre. */
-function panelTitle({ feed, items }: NewsRotation): string {
-  if (feed !== 'commemorations') return NEWS_FEED_LABELS[feed];
-  const first = items[0];
-  return formatCommemorationsTitle(first ? new Date(first.publishedAt) : new Date());
+/** Las efemérides llevan un título propio; el resto de feeds, su nombre. */
+function panelTitle({ feed }: NewsRotation): string {
+  return feed === 'commemorations' ? COMMEMORATIONS_PANEL_TITLE : NEWS_FEED_LABELS[feed];
 }
 
 /** Titulares de la rotación bajo el nombre del feed; la noticia activa se resalta en naranja. */

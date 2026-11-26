@@ -13,12 +13,26 @@ const item = {
 };
 
 describe('CommemorationHero', () => {
-  it('muestra la fecha completa y el texto como descripción, sin titular', () => {
+  it('muestra el día y el mes, el año aparte y el texto como descripción, sin titular', () => {
     render(<CommemorationHero item={item} source="Wikipedia" />);
 
-    expect(screen.getByText('26 de noviembre de 2018')).toBeInTheDocument();
+    expect(screen.getByText('26 de noviembre')).toBeInTheDocument();
+    expect(screen.getByText('2018')).toBeInTheDocument();
     expect(screen.getByText(item.description)).toBeInTheDocument();
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+  });
+
+  it('escala el año según los caracteres del día y el mes para igualar el ancho de ambas líneas', () => {
+    render(<CommemorationHero item={item} source="Wikipedia" />);
+
+    // «26 de noviembre» (15 caracteres) frente a «2018» (4).
+    expect(screen.getByText('2018').closest('p')?.style.getPropertyValue('--year-scale')).toBe('3.75');
+  });
+
+  it('muestra la categoría tal cual si no tiene el formato de fecha esperado', () => {
+    render(<CommemorationHero item={{ ...item, category: 'Efemérides' }} source="Wikipedia" />);
+
+    expect(screen.getByText('Efemérides')).toBeInTheDocument();
   });
 
   it('firma el pie de foto con el proveedor y usa la imagen de la efeméride', () => {
