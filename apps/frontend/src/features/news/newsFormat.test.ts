@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatCommemorationsTitle, formatPublishedAt } from './newsFormat';
+import { formatPublishedAt, splitCommemorationDate } from './newsFormat';
 
-describe('formatCommemorationsTitle', () => {
-  it('compone el título de la card con el día y el mes completos', () => {
-    expect(formatCommemorationsTitle(new Date('2026-11-26T12:00:00Z'))).toBe('Tal día como hoy 26 de noviembre ...');
+describe('splitCommemorationDate', () => {
+  it('separa el día y el mes del año', () => {
+    expect(splitCommemorationDate('26 de noviembre de 2018')).toEqual({ dayMonth: '26 de noviembre', year: '2018' });
+    expect(splitCommemorationDate('1 de mayo de 988')).toEqual({ dayMonth: '1 de mayo', year: '988' });
+  });
+
+  it('devuelve null si la fecha no tiene el formato esperado', () => {
+    expect(splitCommemorationDate('Internacional')).toBeNull();
+    expect(splitCommemorationDate('26 de noviembre')).toBeNull();
   });
 });
 
