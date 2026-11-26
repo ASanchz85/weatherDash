@@ -6,6 +6,7 @@ import type { Theme } from '../../types/theme';
 import { Clock } from '../clock/Clock';
 import { HourlyForecast } from '../forecast/HourlyForecast';
 import { WeeklyForecast } from '../forecast/WeeklyForecast';
+import { MoonPhase } from '../moon/MoonPhase';
 import { RotatingView, type RotatingViewItem } from '../rotation/RotatingView';
 import { WeatherPanel } from '../weather/WeatherPanel';
 import { WindAirPanel } from '../wind-air/WindAirPanel';
@@ -34,8 +35,9 @@ export function WeatherDashboard({ weather, airQuality, page, theme, heroPhoto }
 
   return (
     <DashboardLayout>
-      <HeroPanel label="Fecha y hora" theme={theme} imageUrl={heroPhoto}>
+      <HeroPanel label="Fecha y hora" theme={theme} imageUrl={heroPhoto} spread>
         <Clock />
+        <MoonPhase />
       </HeroPanel>
       <SidePanel label="Meteorología">
         <RotatingView views={sideViews} page={page} />

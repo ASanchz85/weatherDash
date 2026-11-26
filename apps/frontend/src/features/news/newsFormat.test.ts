@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatPublishedAt } from './newsFormat';
+import { formatCommemorationsTitle, formatPublishedAt } from './newsFormat';
+
+describe('formatCommemorationsTitle', () => {
+  it('compone el título de la card con el día y el mes completos', () => {
+    expect(formatCommemorationsTitle(new Date('2026-11-26T12:00:00Z'))).toBe('Tal día como hoy 26 de noviembre ...');
+  });
+});
 
 describe('formatPublishedAt', () => {
   it('muestra día, mes abreviado y hora local de 24 horas', () => {

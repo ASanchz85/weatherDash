@@ -62,6 +62,18 @@
   width: 100%;
 }
 
+/* Primer hijo arriba y último abajo; en vertical, sin altura de sobra, quedan separados por el hueco */
+.hero[data-spread='true'] {
+  align-items: stretch;
+}
+
+.hero[data-spread='true'] .content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(12px, 3cqi, 32px);
+}
+
 .caption {
   position: absolute;
   right: clamp(12px, 2.2cqi, 28px);

@@ -12,3 +12,10 @@ const publishedFormatter = new Intl.DateTimeFormat(LOCALE, {
 export function formatPublishedAt(isoDate: string): string {
   return publishedFormatter.format(new Date(isoDate));
 }
+
+const dayMonthFormatter = new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'long' });
+
+/** Título de la card de efemérides, por ejemplo «Tal día como hoy 26 de noviembre ...». */
+export function formatCommemorationsTitle(date: Date): string {
+  return `Tal día como hoy ${dayMonthFormatter.format(date)} ...`;
+}

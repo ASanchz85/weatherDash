@@ -26,6 +26,7 @@ describe('loadConfig', () => {
         international: 'https://www.europapress.es/rss/rss.aspx?ch=69',
         economy: 'https://e00-expansion.uecdn.es/rss/economia.xml',
         markets: 'https://e00-expansion.uecdn.es/rss/mercados.xml',
+        commemorations: 'https://es.wikipedia.org/api/rest_v1/feed/onthisday/events/{MM}/{DD}',
       },
       refreshIntervalMs: 3600000,
       requestTimeoutMs: 8000,

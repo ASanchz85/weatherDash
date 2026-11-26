@@ -17,6 +17,7 @@ export const VIDEO_URLS: Readonly<Record<VideoId, string | null>> = {
   international: videoUrl('news-international'),
   economy: videoUrl('news-economy'),
   markets: videoUrl('news-stocks-and-markets'),
+  commemorations: videoUrl('commemorations'),
 };
 
 export const AVAILABLE_VIDEOS: readonly VideoId[] = (Object.keys(VIDEO_URLS) as VideoId[]).filter(

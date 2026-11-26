@@ -18,6 +18,11 @@ const apiItem = {
 };
 
 describe('upscaleEnclosure', () => {
+  it('no altera las fotos de Wikimedia', () => {
+    const url = 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Concorde_G-BOAC.jpg/960px-Concorde_G-BOAC.jpg';
+
+    expect(upscaleEnclosure(url)).toBe(url);
+  });
   it('sustituye el tamaño 120 por 800 al final del nombre', () => {
     expect(upscaleEnclosure('https://img.europapress.es/fotoweb/fotonoticia_20261124083249_120.jpg')).toBe(
       'https://img.europapress.es/fotoweb/fotonoticia_20261124083249_800.jpg',

@@ -1,5 +1,5 @@
 /** El orden es el del ciclo de rotación del dashboard. */
-export const NEWS_FEEDS = ['national', 'international', 'economy', 'markets'] as const;
+export const NEWS_FEEDS = ['national', 'international', 'economy', 'markets', 'commemorations'] as const;
 
 /** Origen de la petición; es independiente de la categoría que publica el proveedor en cada noticia. */
 export type NewsFeed = (typeof NEWS_FEEDS)[number];

@@ -92,4 +92,33 @@ describe('createNewsRepository', () => {
     expect(repository.takeNextBatch('markets', 8)).toEqual([]);
     expect(repository.takeNextBatch('national', 8)).toHaveLength(2);
   });
+
+  it('puede limitar la eliminación a un feed', () => {
+    const { db, repository } = createRepository();
+    repository.saveItems('national', [buildNewsItem('a', { publishedAt: 1000 })]);
+    repository.saveItems('commemorations', [buildNewsItem('b', { publishedAt: 1000 })]);
+
+    expect(repository.deleteOlderThan(2000, 'commemorations')).toBe(1);
+    expect(db.prepare('SELECT feed FROM news').pluck().all()).toEqual(['national']);
+  });
+
+  it('indica si el feed tiene noticias desde un instante', () => {
+    const { repository } = createRepository();
+    repository.saveItems('commemorations', [buildNewsItem('a', { publishedAt: 5000 })]);
+
+    expect(repository.hasItemsSince('commemorations', 5000)).toBe(true);
+    expect(repository.hasItemsSince('commemorations', 5001)).toBe(false);
+    expect(repository.hasItemsSince('national', 0)).toBe(false);
+  });
+
+  it('con un instante mínimo ignora las noticias anteriores, también al completar el lote', () => {
+    const { repository } = createRepository();
+    repository.saveItems('commemorations', [
+      buildNewsItem('old', { publishedAt: 1000 }),
+      buildNewsItem('new', { publishedAt: 5000 }),
+    ]);
+
+    expect(repository.takeNextBatch('commemorations', 5, 2000).map((item) => item.title)).toEqual(['Titular new']);
+    expect(repository.takeNextBatch('commemorations', 5, 2000).map((item) => item.title)).toEqual(['Titular new']);
+  });
 });

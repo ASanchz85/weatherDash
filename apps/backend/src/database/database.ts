@@ -50,6 +50,24 @@ const MIGRATIONS: readonly string[] = [
    DROP TABLE news;
    ALTER TABLE news_v3 RENAME TO news;
    CREATE INDEX news_feed_pub_date ON news (feed, pub_date DESC)`,
+  // Se recrea de nuevo la tabla para admitir el feed de efemérides.
+  `CREATE TABLE news_v4 (
+     id              INTEGER PRIMARY KEY AUTOINCREMENT,
+     feed            TEXT    NOT NULL CHECK (feed IN ('national', 'international', 'economy', 'markets', 'commemorations')),
+     title           TEXT    NOT NULL,
+     link            TEXT    NOT NULL UNIQUE,
+     description     TEXT    NOT NULL,
+     enclosure_url   TEXT    NOT NULL,
+     guid            TEXT    NOT NULL,
+     pub_date        INTEGER NOT NULL,
+     category        TEXT    NOT NULL,
+     has_been_shown  INTEGER NOT NULL DEFAULT 0 CHECK (has_been_shown IN (0, 1))
+   ) STRICT;
+   INSERT INTO news_v4 (id, feed, title, link, description, enclosure_url, guid, pub_date, category, has_been_shown)
+     SELECT id, feed, title, link, description, enclosure_url, guid, pub_date, category, has_been_shown FROM news;
+   DROP TABLE news;
+   ALTER TABLE news_v4 RENAME TO news;
+   CREATE INDEX news_feed_pub_date ON news (feed, pub_date DESC)`,
 ];
 
 /** Abre (o crea) la base de datos y aplica las migraciones pendientes. */

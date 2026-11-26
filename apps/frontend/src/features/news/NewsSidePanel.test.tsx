@@ -37,4 +37,10 @@ describe('NewsSidePanel', () => {
     expect(screen.getByText('Titular 2').closest('li')).toHaveAttribute('aria-current', 'true');
     expect(screen.getByText('Titular 1').closest('li')).not.toHaveAttribute('aria-current');
   });
+
+  it('titula la card de efemérides con la fecha de la que hablan', () => {
+    render(<NewsSidePanel rotation={buildNewsRotation('commemorations', 3, 5)} activeIndex={0} />);
+
+    expect(screen.getByRole('heading', { name: 'Tal día como hoy 24 de noviembre ...' })).toBeInTheDocument();
+  });
 });

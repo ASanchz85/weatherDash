@@ -15,12 +15,13 @@ describe('NewsHero', () => {
     expect(screen.queryByText('Europa Press')).not.toBeInTheDocument();
   });
 
-  it('cada feed tiene un proveedor: Europa Press para nacional e internacional y Expansión para economía y mercados', () => {
+  it('cada feed tiene un proveedor: Europa Press para nacional e internacional, Expansión para economía y mercados y Wikipedia para efemérides', () => {
     expect(NEWS_FEED_IDS.map((feed) => NEWS_FEED_SOURCES[feed])).toEqual([
       'Europa Press',
       'Europa Press',
       'Expansión',
       'Expansión',
+      'Wikipedia',
     ]);
   });
 });

@@ -5,16 +5,17 @@ export class NewsProviderError extends Error {
 export interface FeedRequestOptions {
   requestTimeoutMs: number;
   fetchFn?: typeof fetch;
+  headers?: Record<string, string>;
 }
 
 /** Descarga el cuerpo de un feed; cualquier fallo de red, timeout o estado HTTP de error es un `NewsProviderError`. */
 export async function fetchFeedText(
   url: string,
-  { requestTimeoutMs, fetchFn = fetch }: FeedRequestOptions,
+  { requestTimeoutMs, fetchFn = fetch, headers }: FeedRequestOptions,
 ): Promise<string> {
   let response: Response;
   try {
-    response = await fetchFn(url, { signal: AbortSignal.timeout(requestTimeoutMs) });
+    response = await fetchFn(url, { signal: AbortSignal.timeout(requestTimeoutMs), ...(headers && { headers }) });
   } catch (error) {
     const reason =
       error instanceof Error && error.name === 'TimeoutError' ? `timeout tras ${requestTimeoutMs} ms` : 'error de red';
