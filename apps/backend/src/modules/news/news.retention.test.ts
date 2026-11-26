@@ -1,6 +1,34 @@
 import { describe, expect, it } from 'vitest';
 
-import { localDate, startOfDay, startOfPreviousDay } from './news.retention.js';
+import { localDate, nextDailyRun, startOfDay, startOfPreviousDay } from './news.retention.js';
+
+describe('nextDailyRun', () => {
+  it('devuelve las 00:01 locales de hoy si todavía no han llegado', () => {
+    // 00:00:30 del 25 en Madrid.
+    const now = Date.UTC(2026, 10, 24, 23, 0, 30);
+
+    expect(new Date(nextDailyRun(now, 'Europe/Madrid', 1)).toISOString()).toBe('2026-11-24T23:01:00.000Z');
+  });
+
+  it('devuelve las 00:01 locales de mañana si ya han pasado', () => {
+    // 10:00 del 24 en Madrid.
+    const now = Date.UTC(2026, 10, 24, 9);
+
+    expect(new Date(nextDailyRun(now, 'Europe/Madrid', 1)).toISOString()).toBe('2026-11-24T23:01:00.000Z');
+  });
+
+  it('pasa al día siguiente justo a las 00:01', () => {
+    const now = Date.UTC(2026, 10, 24, 23, 1);
+
+    expect(new Date(nextDailyRun(now, 'Europe/Madrid', 1)).toISOString()).toBe('2026-11-25T23:01:00.000Z');
+  });
+
+  it('respeta el horario de verano (UTC+2)', () => {
+    const now = Date.UTC(2026, 6, 10, 12);
+
+    expect(new Date(nextDailyRun(now, 'Europe/Madrid', 1)).toISOString()).toBe('2026-07-10T22:01:00.000Z');
+  });
+});
 
 describe('startOfDay', () => {
   it('devuelve la medianoche local del día actual', () => {

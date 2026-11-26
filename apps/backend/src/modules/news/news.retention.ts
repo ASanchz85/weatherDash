@@ -34,6 +34,13 @@ export function startOfDay(nowMs: number, timeZone: string): number {
   return startOfLocalDay(nowMs, timeZone, 0);
 }
 
+/** Próximo instante posterior a `nowMs` en que el reloj local marca `minutesAfterMidnight`. */
+export function nextDailyRun(nowMs: number, timeZone: string, minutesAfterMidnight: number): number {
+  const offsetMs = minutesAfterMidnight * 60_000;
+  const today = startOfDay(nowMs, timeZone) + offsetMs;
+  return today > nowMs ? today : startOfLocalDay(nowMs, timeZone, -1) + offsetMs;
+}
+
 export interface LocalDate {
   year: number;
   /** 1-12. */

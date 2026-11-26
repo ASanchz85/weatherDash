@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { adaptCommemorations, MAX_COMMEMORATIONS } from './commemorations.mapper.js';
+import { adaptCommemorations } from './commemorations.mapper.js';
 
 const CONTEXT = { date: { year: 2026, month: 11, day: 26 }, publishedAt: Date.UTC(2026, 10, 25, 23) };
 const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons';
@@ -83,12 +83,12 @@ describe('adaptCommemorations', () => {
     expect(new Set(items.map((item) => item.link)).size).toBe(2);
   });
 
-  it('limita el número de efemérides por día', () => {
-    const events = Array.from({ length: MAX_COMMEMORATIONS + 5 }, (_, index) =>
+  it('conserva todas las efemérides con foto válida, sin tope por día', () => {
+    const events = Array.from({ length: 40 }, (_, index) =>
       event(2000 - index, `sucede el acontecimiento número ${index}`),
     );
 
-    expect(adaptCommemorations(events, CONTEXT)).toHaveLength(MAX_COMMEMORATIONS);
+    expect(adaptCommemorations(events, CONTEXT)).toHaveLength(40);
   });
 
   it('no repite la misma foto en varias efemérides', () => {

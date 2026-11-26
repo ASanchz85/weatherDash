@@ -169,6 +169,43 @@ describe('createNewsService', () => {
     const TODAY = Date.UTC(2026, 10, 23, 23);
     const YESTERDAY = Date.UTC(2026, 10, 22, 23);
 
+    it('refreshDaily solo consulta los feeds diarios y confirma que hay contenido de hoy', async () => {
+      const fetchFeed = vi.fn(async (_url: string) => [buildNewsItem('wp', { publishedAt: TODAY })]);
+      const { service } = setup(fetchFeed);
+
+      await expect(service.refreshDaily()).resolves.toBe(true);
+
+      expect(fetchFeed.mock.calls.map(([url]) => url)).toEqual([feedUrls.commemorations]);
+    });
+
+    it('refreshDaily sustituye las efemérides de ayer por las de hoy', async () => {
+      const { db, repository, service } = setup(async () => [buildNewsItem('hoy', { publishedAt: TODAY })]);
+      repository.saveItems('commemorations', [buildNewsItem('ayer', { publishedAt: YESTERDAY })]);
+
+      await service.refreshDaily();
+
+      expect(db.prepare("SELECT title FROM news WHERE feed = 'commemorations'").pluck().all()).toEqual(['Titular hoy']);
+    });
+
+    it('refreshDaily devuelve false si la consulta falla o no trae efemérides', async () => {
+      const failing = setup(async () => {
+        throw new Error('caído');
+      });
+      const empty = setup(async () => []);
+
+      await expect(failing.service.refreshDaily()).resolves.toBe(false);
+      await expect(empty.service.refreshDaily()).resolves.toBe(false);
+    });
+
+    it('no consulta dos veces a la vez el mismo feed aunque coincidan el refresco periódico y el diario', async () => {
+      const fetchFeed = vi.fn(async (_url: string) => []);
+      const { service } = setup(fetchFeed);
+
+      await Promise.all([service.refresh(), service.refreshDaily()]);
+
+      expect(fetchFeed.mock.calls.filter(([url]) => url === feedUrls.commemorations)).toHaveLength(1);
+    });
+
     it('solo conserva y entrega las efemérides de hoy', async () => {
       const { db, repository, service } = setup(async () => []);
       repository.saveItems('commemorations', [

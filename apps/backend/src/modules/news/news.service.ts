@@ -23,6 +23,8 @@ export interface NewsServiceOptions {
 export interface NewsService {
   /** Consulta los feeds y actualiza la base de datos; los fallos de un feed no afectan a los demás. */
   refresh(): Promise<void>;
+  /** Renueva los feeds que solo valen un día; devuelve false si alguno sigue sin contenido de hoy. */
+  refreshDaily(): Promise<boolean>;
   nextRotation(feed: NewsFeed): NewsRotation;
 }
 
@@ -36,29 +38,38 @@ export function createNewsService({
   now = Date.now,
 }: NewsServiceOptions): NewsService {
   let pending: Promise<void> | null = null;
+  const feedsInFlight = new Map<NewsFeed, Promise<void>>();
+
+  async function refreshFeedOnce(feed: NewsFeed): Promise<void> {
+    const todayStart = startOfDay(now(), timeZone);
+    const isDaily = DAILY_FEEDS.has(feed);
+    const cutoff = isDaily ? todayStart : startOfPreviousDay(now(), timeZone);
+    repository.deleteOlderThan(cutoff, feed);
+    if (isDaily && repository.hasItemsSince(feed, todayStart)) return;
+
+    try {
+      const items = await providers[feed].fetchFeed(feedUrls[feed]);
+      repository.saveItems(
+        feed,
+        items.filter((item) => item.publishedAt >= cutoff),
+      );
+    } catch (error) {
+      logger?.warn({ err: error, feed }, 'No se pudo actualizar el feed de noticias');
+    }
+  }
+
+  /** Un feed no se consulta dos veces a la vez, aunque lo pidan el refresco periódico y el diario. */
+  function refreshFeed(feed: NewsFeed): Promise<void> {
+    const inFlight = feedsInFlight.get(feed);
+    if (inFlight) return inFlight;
+
+    const request = refreshFeedOnce(feed).finally(() => feedsInFlight.delete(feed));
+    feedsInFlight.set(feed, request);
+    return request;
+  }
 
   async function refreshOnce(): Promise<void> {
-    const todayStart = startOfDay(now(), timeZone);
-    const yesterdayStart = startOfPreviousDay(now(), timeZone);
-
-    await Promise.all(
-      NEWS_FEEDS.map(async (feed) => {
-        const isDaily = DAILY_FEEDS.has(feed);
-        const cutoff = isDaily ? todayStart : yesterdayStart;
-        repository.deleteOlderThan(cutoff, feed);
-        if (isDaily && repository.hasItemsSince(feed, todayStart)) return;
-
-        try {
-          const items = await providers[feed].fetchFeed(feedUrls[feed]);
-          repository.saveItems(
-            feed,
-            items.filter((item) => item.publishedAt >= cutoff),
-          );
-        } catch (error) {
-          logger?.warn({ err: error, feed }, 'No se pudo actualizar el feed de noticias');
-        }
-      }),
-    );
+    await Promise.all(NEWS_FEEDS.map(refreshFeed));
   }
 
   return {
@@ -67,6 +78,12 @@ export function createNewsService({
         pending = null;
       });
       return pending;
+    },
+    async refreshDaily() {
+      const dailyFeeds = NEWS_FEEDS.filter((feed) => DAILY_FEEDS.has(feed));
+      await Promise.all(dailyFeeds.map(refreshFeed));
+      const todayStart = startOfDay(now(), timeZone);
+      return dailyFeeds.every((feed) => repository.hasItemsSince(feed, todayStart));
     },
     nextRotation(feed) {
       const sinceMs = DAILY_FEEDS.has(feed) ? startOfDay(now(), timeZone) : undefined;

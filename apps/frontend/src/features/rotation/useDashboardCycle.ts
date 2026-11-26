@@ -3,7 +3,7 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { SLIDE_DURATION_MS, VIDEO_FALLBACK_MS, WEATHER_REPETITIONS_PER_BLOCK } from '../../config';
 import { fetchNewsRotation } from '../../services/newsApi';
 import type { UiConfig } from '../../services/configApi';
-import { NEWS_FEED_IDS, NEWS_FEED_LABELS, type NewsFeedId, type NewsRotation } from '../../types/news';
+import { NEWS_CYCLE_ORDER, NEWS_FEED_LABELS, type NewsFeedId, type NewsRotation } from '../../types/news';
 
 /** Vista que ocupa la pantalla; el resto de datos se conserva para dibujar la vista saliente durante el fundido. */
 export type CycleView = 'weather' | 'slide' | 'video' | 'news';
@@ -73,7 +73,7 @@ const WEATHER_SLIDE_TITLE = 'Tiempo';
 const NO_VIDEOS: readonly VideoId[] = [];
 
 function nextFeedIndex(index: number): number {
-  return (index + 1) % NEWS_FEED_IDS.length;
+  return (index + 1) % NEWS_CYCLE_ORDER.length;
 }
 
 function afterVideo(state: State, next: (changes: Partial<State>) => State): State {
@@ -149,7 +149,7 @@ function initialState(pinnedFeed: NewsFeedId | null, lockedFeed: NewsFeedId | nu
   const feed = pinnedFeed ?? lockedFeed;
   return {
     phase: feed ? 'loading' : 'weather',
-    feedIndex: feed ? NEWS_FEED_IDS.indexOf(feed) : 0,
+    feedIndex: feed ? NEWS_CYCLE_ORDER.indexOf(feed) : 0,
     weatherStep: 0,
     slideTitle: WEATHER_SLIDE_TITLE,
     slideNext: 'weather',
@@ -180,8 +180,9 @@ function phaseDurationMs(phase: Phase, config: UiConfig): number | null {
 
 /**
  * Ciclo del dashboard: las vistas del tiempo se repiten y después se muestra un feed de noticias, y así con
- * cada feed. Antes de cada feed aparece su vídeo (o una diapositiva con su título si no hay vídeo) y, al volver
- * al tiempo, el vídeo del tiempo (o la diapositiva «Tiempo»). Un feed sin noticias se salta.
+ * cada feed en el orden de `NEWS_CYCLE_ORDER` (las efemérides se intercalan cada dos feeds). Antes de cada feed
+ * aparece su vídeo (o una diapositiva con su título si no hay vídeo) y, al volver al tiempo, el vídeo del tiempo
+ * (o la diapositiva «Tiempo»). Un feed sin noticias se salta.
  */
 export function useDashboardCycle({
   weatherPageCount,
@@ -234,7 +235,7 @@ export function useDashboardCycle({
     if (state.phase !== 'loading') return;
 
     const controller = new AbortController();
-    const feed = NEWS_FEED_IDS[state.feedIndex] ?? NEWS_FEED_IDS[0];
+    const feed = NEWS_CYCLE_ORDER[state.feedIndex] ?? NEWS_CYCLE_ORDER[0];
     fetchNewsRotation(feed, controller.signal)
       .then((rotation) => dispatch({ type: 'loaded', rotation }))
       .catch(() => {

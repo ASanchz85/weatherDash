@@ -5,8 +5,6 @@ import type { LocalDate } from '../news.retention.js';
 import type { ParsedNewsItem } from '../news.types.js';
 import { pageSchema, pickPhoto, type WikipediaPage } from './commemorations.photo.js';
 
-/** Máximo de efemérides con foto que se guardan por día. */
-export const MAX_COMMEMORATIONS = 15;
 const MIN_TEXT_LENGTH = 15;
 
 const eventSchema = z.object({
@@ -50,8 +48,6 @@ export function adaptCommemorations(events: readonly unknown[], { date, publishe
   parsed.sort((a, b) => b.year - a.year || a.index - b.index);
 
   for (const event of parsed) {
-    if (items.length >= MAX_COMMEMORATIONS) break;
-
     const text = normalizeText(event.text);
     if (text === null || seen.has(text.toLowerCase())) continue;
 
