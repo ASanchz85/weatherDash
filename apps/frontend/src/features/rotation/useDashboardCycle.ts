@@ -3,7 +3,7 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { SLIDE_DURATION_MS, VIDEO_FALLBACK_MS, WEATHER_REPETITIONS_PER_BLOCK } from '../../config';
 import { fetchNewsRotation } from '../../services/newsApi';
 import type { UiConfig } from '../../services/configApi';
-import { NEWS_CYCLE_ORDER, NEWS_FEED_LABELS, type NewsFeedId, type NewsRotation } from '../../types/news';
+import { NEWS_CYCLE_ORDER, NEWS_FEEDS, type NewsFeedId, type NewsRotation } from '../../types/news';
 
 /** Vista que ocupa la pantalla; el resto de datos se conserva para dibujar la vista saliente durante el fundido. */
 export type CycleView = 'weather' | 'slide' | 'video' | 'news';
@@ -104,7 +104,7 @@ function reduce(state: State, action: Action): State {
     if (state.pinned) return next({ phase: 'news', rotation, itemIndex: 0 });
     return next({
       phase: 'slide',
-      slideTitle: NEWS_FEED_LABELS[rotation.feed],
+      slideTitle: NEWS_FEEDS[rotation.feed].label,
       slideNext: 'news',
       rotation,
       itemIndex: 0,

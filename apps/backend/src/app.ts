@@ -8,11 +8,10 @@ import type { AirQualitySnapshot } from './modules/air-quality/air-quality.types
 import { healthRoutes } from './modules/health/health.routes.js';
 import { createLocationService } from './modules/location/location.service.js';
 import { startDailyRefresh } from './modules/news/news.daily-refresh.js';
-import type { NewsProvider } from './modules/news/news.provider.js';
 import type { NewsRepository } from './modules/news/news.repository.js';
 import { newsRoutes } from './modules/news/news.routes.js';
 import { createNewsService } from './modules/news/news.service.js';
-import type { NewsFeed } from './modules/news/news.types.js';
+import type { NewsFeed, NewsProvider } from './modules/news/news.types.js';
 import { uiRoutes } from './modules/ui/ui.routes.js';
 import type { WeatherProvider } from './modules/weather/weather.provider.js';
 import { weatherRoutes } from './modules/weather/weather.routes.js';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { cleanCategory, cleanText, parsePublishedAt } from './expansion.sanitizer.js';
+import { cleanCategory, cleanText, parsePublishedAt } from './news.sanitizer.js';
 
 describe('cleanText', () => {
   it('elimina los restos de CDATA y recorta', () => {

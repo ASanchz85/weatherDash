@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { NEWS_FEED_XML } from '../../test/fixtures.js';
-import { createNewsProvider, NewsProviderError, parseNewsFeed } from './news.provider.js';
+import { NEWS_FEED_XML } from '../../../test/fixtures.js';
+import { NewsProviderError } from '../news.http.js';
+import { createEuropaPressProvider, parseEuropaPressFeed } from './europa-press.provider.js';
 
-describe('parseNewsFeed', () => {
+describe('parseEuropaPressFeed', () => {
   it('normaliza las noticias y descarta las que no traen imagen o tienen datos inválidos', () => {
-    expect(parseNewsFeed(NEWS_FEED_XML)).toEqual([
+    expect(parseEuropaPressFeed(NEWS_FEED_XML)).toEqual([
       {
         title: 'Diez años del acuerdo de paz en Colombia',
         link: 'https://www.europapress.es/internacional/noticia-colombia-20261124083249.html',
@@ -21,7 +22,7 @@ describe('parseNewsFeed', () => {
   it('acepta un feed sin noticias', () => {
     const xml = '<rss version="2.0"><channel><title>Vacío</title></channel></rss>';
 
-    expect(parseNewsFeed(xml)).toEqual([]);
+    expect(parseEuropaPressFeed(xml)).toEqual([]);
   });
 
   it('usa el enlace como guid cuando el feed no lo trae', () => {
@@ -31,18 +32,18 @@ describe('parseNewsFeed', () => {
       <pubDate>Tue, 24 Nov 2026 07:32:49 GMT</pubDate>
     </item></channel></rss>`;
 
-    expect(parseNewsFeed(xml)).toMatchObject([{ guid: 'https://example.com/a', description: '', category: '' }]);
+    expect(parseEuropaPressFeed(xml)).toMatchObject([{ guid: 'https://example.com/a', description: '', category: '' }]);
   });
 
   it('rechaza documentos que no son un RSS', () => {
-    expect(() => parseNewsFeed('<html><body>Error</body></html>')).toThrow(NewsProviderError);
+    expect(() => parseEuropaPressFeed('<html><body>Error</body></html>')).toThrow(NewsProviderError);
   });
 });
 
-describe('createNewsProvider', () => {
+describe('createEuropaPressProvider', () => {
   it('descarga el feed con timeout y lo parsea', async () => {
     const fetchFn = vi.fn().mockResolvedValue(new Response(NEWS_FEED_XML));
-    const provider = createNewsProvider({ requestTimeoutMs: 5000, fetchFn });
+    const provider = createEuropaPressProvider({ requestTimeoutMs: 5000, fetchFn });
 
     const items = await provider.fetchFeed('https://example.com/feed.xml');
 
@@ -51,11 +52,11 @@ describe('createNewsProvider', () => {
   });
 
   it('convierte los fallos de red y los estados HTTP de error en NewsProviderError', async () => {
-    const network = createNewsProvider({
+    const network = createEuropaPressProvider({
       requestTimeoutMs: 5000,
       fetchFn: vi.fn().mockRejectedValue(new TypeError('fetch failed')),
     });
-    const http = createNewsProvider({
+    const http = createEuropaPressProvider({
       requestTimeoutMs: 5000,
       fetchFn: vi.fn().mockResolvedValue(new Response('', { status: 500 })),
     });

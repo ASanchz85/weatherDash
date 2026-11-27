@@ -2,10 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { IN_MEMORY_DATABASE, openDatabase, type SqliteDatabase } from '../../database/database.js';
 import { buildNewsItem } from '../../test/fixtures.js';
-import type { NewsProvider } from './news.provider.js';
 import { createNewsRepository } from './news.repository.js';
 import { createNewsService } from './news.service.js';
-import type { NewsFeed } from './news.types.js';
+import type { NewsFeed, NewsProvider } from './news.types.js';
 
 const NOW = Date.UTC(2026, 10, 24, 10);
 const feedUrls: Record<NewsFeed, string> = {

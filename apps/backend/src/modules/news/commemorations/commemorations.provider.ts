@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 import { fetchFeedText, NewsProviderError, type FeedRequestOptions } from '../news.http.js';
-import type { NewsProvider } from '../news.provider.js';
 import { localDate, startOfDay } from '../news.retention.js';
+import type { NewsProvider } from '../news.types.js';
 import { adaptCommemorations } from './commemorations.mapper.js';
 
 // Wikimedia exige identificar al cliente en el User-Agent.

@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
+import { dropDuplicateLinks, normalizeLink } from '../news.dedupe.js';
+import { cleanCategory, cleanText, parsePublishedAt } from '../news.sanitizer.js';
 import type { ParsedNewsItem } from '../news.types.js';
-import { dropDuplicateLinks, normalizeLink } from './expansion.dedupe.js';
 import { extractImageUrl } from './expansion.image.js';
-import { cleanCategory, cleanText, parsePublishedAt } from './expansion.sanitizer.js';
 
 // Con atributos activados, un elemento con atributos llega como objeto y su texto en `#text`.
 const textNode = z.union([z.string(), z.object({ '#text': z.string().default('') }).transform((node) => node['#text'])]);

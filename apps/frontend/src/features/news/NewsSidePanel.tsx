@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 
 import { SidePanel } from '../../components/SidePanel';
-import { NEWS_FEED_LABELS, type NewsRotation } from '../../types/news';
+import { NEWS_FEEDS, type NewsRotation } from '../../types/news';
 import detailsStyles from '../weather/WeatherDetails.module.css';
 import styles from './NewsSidePanel.module.css';
 
@@ -17,7 +17,7 @@ interface NewsSidePanelProps {
 
 /** Las efemérides llevan un título propio; el resto de feeds, su nombre. */
 function panelTitle({ feed }: NewsRotation): string {
-  return feed === 'commemorations' ? COMMEMORATIONS_PANEL_TITLE : NEWS_FEED_LABELS[feed];
+  return feed === 'commemorations' ? COMMEMORATIONS_PANEL_TITLE : NEWS_FEEDS[feed].label;
 }
 
 /** Titulares de la rotación bajo el nombre del feed; la noticia activa se resalta en naranja. */

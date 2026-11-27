@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { NEWS_FEEDS } from '../modules/news/news.feeds.js';
 import { IN_MEMORY_DATABASE, openDatabase } from './database.js';
 
 const directories: string[] = [];
@@ -17,6 +18,13 @@ const INSERT_NEWS = `INSERT INTO news (feed, title, link, description, enclosure
    VALUES (?, 't', ?, 'd', 'https://img/x.jpg', 'g', 1, 'c')`;
 
 describe('openDatabase', () => {
+  it.each(NEWS_FEEDS)('admite el feed %s del registro de feeds', (feed) => {
+    const db = openDatabase(IN_MEMORY_DATABASE);
+
+    expect(() => db.prepare(INSERT_NEWS).run(feed, `https://example.com/${feed}`)).not.toThrow();
+    db.close();
+  });
+
   it('admite el feed economy', () => {
     const db = openDatabase(IN_MEMORY_DATABASE);
 
