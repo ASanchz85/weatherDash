@@ -1,5 +1,5 @@
 /** Proveedores que saben leer un tipo de feed; varios feeds pueden compartir uno. */
-export type NewsSource = 'europa-press' | 'expansion' | 'commemorations';
+export type NewsSource = 'europa-press' | 'expansion' | 'commemorations' | 'motorsport' | 'nba';
 
 interface NewsFeedDefinition {
   source: NewsSource;
@@ -38,6 +38,16 @@ export const NEWS_FEED_DEFINITIONS = {
     // {MM} y {DD} se sustituyen por el mes y el día locales de hoy.
     defaultUrl: 'https://es.wikipedia.org/api/rest_v1/feed/onthisday/events/{MM}/{DD}',
     daily: true,
+  },
+  motorsport: {
+    source: 'motorsport',
+    envVar: 'NEWS_FEED_MOTORSPORT_URL',
+    defaultUrl: 'https://es.motorsport.com/rss/all/news/',
+  },
+  nba: {
+    source: 'nba',
+    envVar: 'NEWS_FEED_NBA_URL',
+    defaultUrl: 'https://www.nbamaniacs.com/feed/',
   },
 } as const satisfies Record<string, NewsFeedDefinition>;
 

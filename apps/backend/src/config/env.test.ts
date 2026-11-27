@@ -27,6 +27,8 @@ describe('loadConfig', () => {
         economy: 'https://e00-expansion.uecdn.es/rss/economia.xml',
         markets: 'https://e00-expansion.uecdn.es/rss/mercados.xml',
         commemorations: 'https://es.wikipedia.org/api/rest_v1/feed/onthisday/events/{MM}/{DD}',
+        motorsport: 'https://es.motorsport.com/rss/all/news/',
+        nba: 'https://www.nbamaniacs.com/feed/',
       },
       refreshIntervalMs: 3600000,
       requestTimeoutMs: 8000,
@@ -48,6 +50,17 @@ describe('loadConfig', () => {
     expect(config.news.feedUrls.markets).toBe('https://e00-expansion.uecdn.es/rss/mercados.xml');
     expect(config.news.refreshIntervalMs).toBe(120000);
     expect(config.ui.newsItemDurationMs).toBe(30000);
+  });
+
+  it('permite sobrescribir la URL de cada feed con su variable NEWS_FEED_<ID>_URL', () => {
+    const config = loadConfig({
+      NEWS_FEED_MOTORSPORT_URL: 'https://example.com/motor.xml',
+      NEWS_FEED_NBA_URL: 'https://example.com/nba.xml',
+    });
+
+    expect(config.news.feedUrls.motorsport).toBe('https://example.com/motor.xml');
+    expect(config.news.feedUrls.nba).toBe('https://example.com/nba.xml');
+    expect(() => loadConfig({ NEWS_FEED_NBA_URL: 'no-es-url' })).toThrow(ConfigError);
   });
 
   it('permite configurar o desactivar la rotación de vistas', () => {

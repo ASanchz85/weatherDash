@@ -9,6 +9,8 @@ import { createOpenMeteoAirQualityProvider } from './modules/air-quality/air-qua
 import { createCommemorationsProvider } from './modules/news/commemorations/commemorations.provider.js';
 import { createEuropaPressProvider } from './modules/news/europa-press/europa-press.provider.js';
 import { createExpansionProvider } from './modules/news/expansion/expansion.provider.js';
+import { createMotorsportProvider } from './modules/news/motorsport/motorsport.provider.js';
+import { createNbaProvider } from './modules/news/nba/nba.provider.js';
 import { mapFeeds, NEWS_FEED_DEFINITIONS, type NewsSource } from './modules/news/news.feeds.js';
 import { createNewsRepository } from './modules/news/news.repository.js';
 import type { NewsProvider } from './modules/news/news.types.js';
@@ -26,6 +28,8 @@ const providersBySource: Record<NewsSource, NewsProvider> = {
     requestTimeoutMs: config.news.requestTimeoutMs,
     timeZone: config.weather.timezone ?? NEWS_DEFAULT_TIME_ZONE,
   }),
+  motorsport: createMotorsportProvider({ requestTimeoutMs: config.news.requestTimeoutMs }),
+  nba: createNbaProvider({ requestTimeoutMs: config.news.requestTimeoutMs }),
 };
 
 const app = await buildApp({

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { cleanCategory, cleanText, parsePublishedAt } from './news.sanitizer.js';
+import { cleanCategory, cleanText, parsePublishedAt, trimToLastSentence } from './news.sanitizer.js';
 
 describe('cleanText', () => {
   it('elimina los restos de CDATA y recorta', () => {
@@ -42,5 +42,36 @@ describe('parsePublishedAt', () => {
 
   it('devuelve null si no es una fecha', () => {
     expect(parsePublishedAt('no es una fecha')).toBeNull();
+  });
+});
+
+describe('trimToLastSentence', () => {
+  it('quita la frase cortada y los puntos suspensivos finales', () => {
+    expect(trimToLastSentence('Primera frase. Segunda frase completa. Tercera que se corta en el ...')).toBe(
+      'Primera frase. Segunda frase completa.',
+    );
+    expect(trimToLastSentence('Una frase. Otra que se corta…')).toBe('Una frase.');
+  });
+
+  it('no toca un texto que ya termina en una frase completa', () => {
+    expect(trimToLastSentence('Todo completo. Hasta el final.')).toBe('Todo completo. Hasta el final.');
+    expect(trimToLastSentence('¿Quién será el sustituto?')).toBe('¿Quién será el sustituto?');
+    expect(trimToLastSentence('¡Se retira!')).toBe('¡Se retira!');
+  });
+
+  it('conserva la comilla o el paréntesis que cierran la última frase', () => {
+    expect(trimToLastSentence('Dijo "basta ya." Después se fue a ca')).toBe('Dijo "basta ya."');
+    expect(trimToLastSentence('Dijo «basta ya». Después se fue a ca')).toBe('Dijo «basta ya».');
+    expect(trimToLastSentence('Se retiró (por lesión). Luego se fue a ca')).toBe('Se retiró (por lesión).');
+  });
+
+  it('no confunde decimales ni iniciales con el final de una frase', () => {
+    expect(trimToLastSentence('Sumó 3.5 puntos de ventaja. Después anunció que')).toBe('Sumó 3.5 puntos de ventaja.');
+    expect(trimToLastSentence('Habló con M. Márquez sobre el asunto y no')).toBe('Habló con M. Márquez sobre el asunto y no');
+  });
+
+  it('si no hay ninguna frase completa deja el texto como está', () => {
+    expect(trimToLastSentence('Una sola frase que se corta ...')).toBe('Una sola frase que se corta ...');
+    expect(trimToLastSentence('')).toBe('');
   });
 });

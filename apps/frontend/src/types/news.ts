@@ -14,6 +14,8 @@ export const NEWS_FEEDS = {
   economy: { label: 'Economía', source: 'Expansión', video: 'news-economy' },
   markets: { label: 'Mercados', source: 'Expansión', video: 'news-stocks-and-markets' },
   commemorations: { label: 'Efemérides', source: 'Wikipedia', video: 'commemorations' },
+  motorsport: { label: 'Motor', source: 'Motorsport.com', video: 'news_motorsport' },
+  nba: { label: 'NBA', source: 'NBAManiacs', video: 'news_basketball' },
 } as const satisfies Record<string, NewsFeedDefinition>;
 
 export type NewsFeedId = keyof typeof NEWS_FEEDS;
@@ -27,6 +29,9 @@ export const NEWS_CYCLE_ORDER = [
   'commemorations',
   'economy',
   'markets',
+  'commemorations',
+  'motorsport',
+  'nba',
   'commemorations',
 ] as const satisfies readonly NewsFeedId[];
 

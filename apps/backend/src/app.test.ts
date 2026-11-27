@@ -156,6 +156,8 @@ describe('API de noticias', () => {
             economy: 'https://x/e',
             markets: 'https://x/m',
             commemorations: 'https://x/c/{MM}/{DD}',
+            motorsport: 'https://x/mo',
+            nba: 'https://x/nba',
           },
           refreshIntervalMs: 3600000,
           requestTimeoutMs: 8000,
@@ -167,6 +169,8 @@ describe('API de noticias', () => {
           economy: provider,
           markets: provider,
           commemorations: provider,
+          motorsport: provider,
+          nba: provider,
         },
         repository,
       },
@@ -196,6 +200,15 @@ describe('API de noticias', () => {
     });
     expect(markets.json()).toEqual({ feed: 'markets', size: 5, items: [] });
     expect(economy.json()).toEqual({ feed: 'economy', size: 5, items: [] });
+  });
+
+  it.each(['motorsport', 'nba'])('POST /api/news/%s/rotation responde con la rotación del feed', async (feed) => {
+    const app = await createNewsApp();
+
+    const response = await app.inject({ method: 'POST', url: `/api/news/${feed}/rotation` });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ feed, size: 5, items: [] });
   });
 
   it('POST /api/news/:feed/rotation responde 404 para un feed desconocido', async () => {

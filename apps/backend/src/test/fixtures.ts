@@ -291,3 +291,87 @@ export const EXPANSION_FEED_XML = `<?xml version="1.0" encoding="UTF-8"?>
 </item>
 </channel>
 </rss>`;
+
+export const MOTORSPORT_FEED_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+<channel>
+<title>Motorsport.com - All - Historias</title>
+<item>
+<title> <![CDATA[ Márquez pulveriza el récord de la pista en su último viernes en MotoGP ]]> </title>
+<link>https://es.motorsport.com/motogp/news/marquez-record-valencia/10878283/?utm_source=RSS&utm_medium=referral&utm_campaign=RSS-ALL&utm_term=News&utm_content=es</link>
+<description> <![CDATA[ Marc Márquez lideró la Práctica del GP de Valencia. El piloto de Ducati dejó claro que se va a ir subido a la ola.<br>Recuerda:<br><br><br>MotoGP¡Marc Márquez anuncia su retirada de ...<a class='more' href='https://es.motorsport.com/motogp/news/marquez-record-valencia/10878283/?utm_source=RSS'>Sigue leyendo</a> ]]> </description>
+<category>Circuito Ricardo Tormo de Cheste</category>
+<category>MotoGP</category>
+<guid isPermaLink="false">10878283</guid>
+<pubDate>Fri, 27 Nov 2026 15:14:30 +0000</pubDate>
+<enclosure url="https://cdn-1.motorsport.com/images/amp/0Lde9nN0/s6/marc-marquez-ducati-team.jpg" type="image/jpeg" length="377646"/>
+</item>
+<item>
+<title> <![CDATA[ Antonelli domina sobrado la FP1 de Qatar ]]> </title>
+<link>https://es.motorsport.com/f1/news/resumen-fp1-qatar-2026/10878266/?utm_source=RSS&utm_medium=referral</link>
+<description> <![CDATA[ El campeón no está aún de vacaciones. Antonelli dominó la primera sesión de libres, sacando más de medio segundo al resto. Fue una sesión en ...<a class='more' href='https://es.motorsport.com/f1/news/resumen-fp1-qatar-2026/10878266/'>Sigue leyendo</a> ]]> </description>
+<category>Fórmula 1</category>
+<guid isPermaLink="false">10878266</guid>
+<pubDate>Fri, 27 Nov 2026 14:33:31 +0000</pubDate>
+<enclosure url="https://cdn-1.motorsport.com/images/amp/YP74Vj82/s6/andrea-kimi-antonelli-mercedes.jpg" type="image/jpeg" length="186256"/>
+</item>
+<item>
+<title> <![CDATA[ Noticia sin imagen ]]> </title>
+<link>https://es.motorsport.com/f1/news/sin-imagen/1/?utm_source=RSS</link>
+<description> <![CDATA[ No trae enclosure. ]]> </description>
+<category>Fórmula 1</category>
+<pubDate>Fri, 27 Nov 2026 12:00:00 +0000</pubDate>
+</item>
+<item>
+<title> <![CDATA[ Márquez pulveriza el récord (repetida) ]]> </title>
+<link>https://es.motorsport.com/motogp/news/marquez-record-valencia/10878283/?utm_source=RSS-OTRO</link>
+<description> <![CDATA[ Repetida. ]]> </description>
+<category>MotoGP</category>
+<pubDate>Fri, 27 Nov 2026 15:20:00 +0000</pubDate>
+<enclosure url="https://cdn-1.motorsport.com/images/amp/a.jpg" type="image/jpeg" length="1"/>
+</item>
+</channel>
+</rss>`;
+
+export const NBA_FEED_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:media="http://search.yahoo.com/mrss/">
+<channel>
+<title>NBAManiacs</title>
+<item>
+<title>¿Ha cambiado el arbitraje de la NBA?</title>
+<link>https://www.nbamaniacs.com/articulos/cambios-arbitraje-nba/</link>
+<pubDate>Fri, 27 Nov 2026 09:00:00 +0000</pubDate>
+<category><![CDATA[Artículos]]></category>
+<category><![CDATA[NBA]]></category>
+<guid isPermaLink="false">https://www.nbamaniacs.com/?p=437944</guid>
+<description><![CDATA[<div style="margin: 5px 5% 10px 5%;"><img src="https://www.nbamaniacs.com/wp-content/uploads/2026/11/arbitraje-nba-300x169.jpg" width="300" height="169" title="" alt="Ajustes en el arbitraje NBA" /></div><div><p>La liga parece por fin haberse tomado en serio los puntos de énfasis anunciados en el mes de septiembre</p>
+<p>La entrada <a rel="nofollow" href="https://www.nbamaniacs.com/articulos/cambios-arbitraje-nba/">¿Ha cambiado el arbitraje de la NBA?</a> se publicó primero en <a rel="nofollow" href="https://www.nbamaniacs.com">NBAManiacs</a>.</p>
+</div><div>&nbsp;</div><div><em>Source: <a href="https://www.nbamaniacs.com/articulos/cambios-arbitraje-nba/" target="_blank">NBAManiacs</a></em></div>]]></description>
+<enclosure url="https://www.nbamaniacs.com/wp-content/uploads/2026/11/savetwt.com_1280x720-1.mp4" length="1705240" type="video/mp4" />
+<enclosure url="https://www.nbamaniacs.com/wp-content/uploads/2026/11/arbitraje-nba.jpg" length="69485" type="image/jpg" />
+<media:content url="https://www.nbamaniacs.com/wp-content/uploads/2026/11/arbitraje-nba-300x169.jpg" width="300" height="169" medium="image" type="image/jpeg">
+<media:title></media:title>
+</media:content>
+</item>
+<item>
+<title>Sobreviviendo a los &#8216;anotadores&#8217; (jornada 25/11/2026)</title>
+<link>https://www.nbamaniacs.com/pospartidos/sobreviviendo-anotadores-25-11-2026/</link>
+<pubDate>Thu, 26 Nov 2026 10:00:15 +0000</pubDate>
+<category><![CDATA[Pospartidos NBA]]></category>
+<category><![CDATA[Brandon Miller]]></category>
+<guid isPermaLink="false">https://www.nbamaniacs.com/?p=437876</guid>
+<description><![CDATA[<div><img src="https://www.nbamaniacs.com/wp-content/uploads/2026/11/jue26-giannis-300x169.jpg" alt="Giannis" /></div><div><p>Una noche NBA para recordar que tener una gran estrella no siempre triunfa</p>
+<p>La entrada <a rel="nofollow" href="https://www.nbamaniacs.com/pospartidos/sobreviviendo-anotadores-25-11-2026/">Sobreviviendo</a> se publicó primero en <a rel="nofollow" href="https://www.nbamaniacs.com">NBAManiacs</a>.</p>
+</div>]]></description>
+<enclosure url="https://www.nbamaniacs.com/wp-content/uploads/2026/11/jue26-giannis.jpg" length="101180" type="image/jpg" />
+</item>
+<item>
+<title>Solo trae un vídeo</title>
+<link>https://www.nbamaniacs.com/video/solo-video/</link>
+<pubDate>Thu, 26 Nov 2026 09:30:19 +0000</pubDate>
+<category><![CDATA[Vídeos de la NBA]]></category>
+<description><![CDATA[<p>Sin foto</p>]]></description>
+<enclosure url="https://www.nbamaniacs.com/wp-content/uploads/2026/11/solo.mp4" length="1" type="video/mp4" />
+</item>
+</channel>
+</rss>`;

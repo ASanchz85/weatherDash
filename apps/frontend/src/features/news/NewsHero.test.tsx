@@ -15,13 +15,15 @@ describe('NewsHero', () => {
     expect(screen.queryByText('Europa Press')).not.toBeInTheDocument();
   });
 
-  it('cada feed tiene un proveedor: Europa Press para nacional e internacional, Expansión para economía y mercados y Wikipedia para efemérides', () => {
+  it('cada feed tiene un proveedor: Europa Press para nacional e internacional, Expansión para economía y mercados, Wikipedia para efemérides, Motorsport.com y NBAManiacs', () => {
     expect(NEWS_FEED_IDS.map((feed) => NEWS_FEEDS[feed].source)).toEqual([
       'Europa Press',
       'Europa Press',
       'Expansión',
       'Expansión',
       'Wikipedia',
+      'Motorsport.com',
+      'NBAManiacs',
     ]);
   });
 });

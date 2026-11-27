@@ -63,3 +63,21 @@ export function parsePublishedAt(value: string): number | null {
   const timestamp = Date.parse(cleanText(value));
   return Number.isNaN(timestamp) ? null : timestamp;
 }
+
+const TRAILING_ELLIPSIS = /\s*(?:\.{3}|…)$/;
+const CLOSING_MARKS = '["\'”’»)\\]]*';
+const ENDS_SENTENCE = new RegExp(`[.!?]${CLOSING_MARKS}$`);
+// Una inicial suelta («M. Márquez») no cierra la frase.
+const SENTENCE_BOUNDARY = new RegExp(`(?<![\\s(]\\p{L})[.!?]${CLOSING_MARKS}(?=\\s)`, 'gu');
+
+/**
+ * Recorta un texto ya limpio hasta su última frase completa, para no mostrar resúmenes cortados a mitad de frase.
+ * Si no hay ninguna frase completa, lo devuelve tal cual.
+ */
+export function trimToLastSentence(text: string): string {
+  const body = text.replace(TRAILING_ELLIPSIS, '');
+  if (ENDS_SENTENCE.test(body)) return body;
+
+  const lastBoundary = [...body.matchAll(SENTENCE_BOUNDARY)].at(-1);
+  return lastBoundary ? body.slice(0, lastBoundary.index + lastBoundary[0].length) : text;
+}

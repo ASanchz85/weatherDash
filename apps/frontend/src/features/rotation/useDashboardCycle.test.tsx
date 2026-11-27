@@ -167,7 +167,7 @@ describe('useDashboardCycle', () => {
   it('intercala las efemérides cada dos bloques de noticias y reinicia el ciclo', async () => {
     renderCycle();
 
-    for (let block = 0; block < 7; block += 1) {
+    for (let block = 0; block < 10; block += 1) {
       await finishWeatherBlock();
       await finishNewsBlock();
     }
@@ -178,6 +178,9 @@ describe('useDashboardCycle', () => {
       'commemorations',
       'economy',
       'markets',
+      'commemorations',
+      'motorsport',
+      'nba',
       'commemorations',
       'national',
     ]);

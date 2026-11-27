@@ -32,6 +32,8 @@ describe('parsePinnedScreen', () => {
     expect(parsePinnedScreen('news-economy')).toEqual({ page: null, feed: 'economy' });
     expect(parsePinnedScreen('news-markets')).toEqual({ page: null, feed: 'markets' });
     expect(parsePinnedScreen('news-commemorations')).toEqual({ page: null, feed: 'commemorations' });
+    expect(parsePinnedScreen('news-motorsport')).toEqual({ page: null, feed: 'motorsport' });
+    expect(parsePinnedScreen('news-nba')).toEqual({ page: null, feed: 'nba' });
   });
 
   it.each([null, undefined, 0, '0', '', 'weather-0', 'weather', 'news-deportes', 'slide'])(

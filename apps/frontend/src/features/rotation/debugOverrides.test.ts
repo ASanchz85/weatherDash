@@ -18,6 +18,8 @@ describe('parseDebugOverrides', () => {
   it('lee el feed de noticias fijado', () => {
     expect(parseDebugOverrides('?feed=markets')).toEqual({ ...NONE, feed: 'markets' });
     expect(parseDebugOverrides('?feed=economy')).toEqual({ ...NONE, feed: 'economy' });
+    expect(parseDebugOverrides('?feed=motorsport')).toEqual({ ...NONE, feed: 'motorsport' });
+    expect(parseDebugOverrides('?feed=nba')).toEqual({ ...NONE, feed: 'nba' });
   });
 
   it('ignora valores ausentes o no válidos', () => {

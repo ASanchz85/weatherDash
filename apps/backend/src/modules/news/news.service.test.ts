@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { IN_MEMORY_DATABASE, openDatabase, type SqliteDatabase } from '../../database/database.js';
 import { buildNewsItem } from '../../test/fixtures.js';
+import { mapFeeds, NEWS_FEEDS } from './news.feeds.js';
 import { createNewsRepository } from './news.repository.js';
 import { createNewsService } from './news.service.js';
 import type { NewsFeed, NewsProvider } from './news.types.js';
@@ -13,6 +14,8 @@ const feedUrls: Record<NewsFeed, string> = {
   economy: 'https://example.com/economia',
   markets: 'https://example.com/mercados',
   commemorations: 'https://example.com/efemerides/{MM}/{DD}',
+  motorsport: 'https://example.com/motor',
+  nba: 'https://example.com/baloncesto',
 };
 
 const databases: SqliteDatabase[] = [];
@@ -28,13 +31,7 @@ function setup(fetchFeed: NewsProvider['fetchFeed'], logger = { warn: vi.fn() },
   const repository = createNewsRepository(db);
   const provider: NewsProvider = { fetchFeed };
   const service = createNewsService({
-    providers: {
-      national: provider,
-      international: provider,
-      economy: provider,
-      markets: provider,
-      commemorations: provider,
-    },
+    providers: mapFeeds(() => provider),
     repository,
     feedUrls,
     rotationSize,
@@ -61,7 +58,9 @@ describe('createNewsService', () => {
       { feed: 'economy', title: 'Titular economia' },
       { feed: 'international', title: 'Titular internacional' },
       { feed: 'markets', title: 'Titular mercados' },
+      { feed: 'motorsport', title: 'Titular motor' },
       { feed: 'national', title: 'Titular nacional' },
+      { feed: 'nba', title: 'Titular baloncesto' },
     ]);
   });
 
@@ -94,7 +93,9 @@ describe('createNewsService', () => {
       'commemorations',
       'economy',
       'markets',
+      'motorsport',
       'national',
+      'nba',
     ]);
     expect(logger.warn).toHaveBeenCalledWith(expect.objectContaining({ feed: 'international' }), expect.any(String));
   });
@@ -105,13 +106,15 @@ describe('createNewsService', () => {
 
     await Promise.all([service.refresh(), service.refresh()]);
 
-    expect(fetchFeed).toHaveBeenCalledTimes(5);
+    expect(fetchFeed).toHaveBeenCalledTimes(NEWS_FEEDS.length);
   });
 
   it('consulta cada feed con su propio proveedor', async () => {
     const europaPress = { fetchFeed: vi.fn(async (_url: string) => [buildNewsItem('ep')]) };
     const expansion = { fetchFeed: vi.fn(async (_url: string) => [buildNewsItem('ex')]) };
     const wikipedia = { fetchFeed: vi.fn(async (_url: string) => [buildNewsItem('wp')]) };
+    const motorsport = { fetchFeed: vi.fn(async (_url: string) => [buildNewsItem('mo')]) };
+    const nba = { fetchFeed: vi.fn(async (_url: string) => [buildNewsItem('nb')]) };
     const db = openDatabase(IN_MEMORY_DATABASE);
     databases.push(db);
     const service = createNewsService({
@@ -121,6 +124,8 @@ describe('createNewsService', () => {
         economy: expansion,
         markets: expansion,
         commemorations: wikipedia,
+        motorsport,
+        nba,
       },
       repository: createNewsRepository(db),
       feedUrls,
@@ -134,6 +139,8 @@ describe('createNewsService', () => {
     expect(europaPress.fetchFeed.mock.calls.map(([url]) => url)).toEqual([feedUrls.national, feedUrls.international]);
     expect(expansion.fetchFeed.mock.calls.map(([url]) => url)).toEqual([feedUrls.economy, feedUrls.markets]);
     expect(wikipedia.fetchFeed.mock.calls.map(([url]) => url)).toEqual([feedUrls.commemorations]);
+    expect(motorsport.fetchFeed.mock.calls.map(([url]) => url)).toEqual([feedUrls.motorsport]);
+    expect(nba.fetchFeed.mock.calls.map(([url]) => url)).toEqual([feedUrls.nba]);
   });
 
   it('entrega la rotación con fechas ISO', async () => {

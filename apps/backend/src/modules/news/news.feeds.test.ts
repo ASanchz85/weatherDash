@@ -9,7 +9,7 @@ import {
   type NewsSource,
 } from './news.feeds.js';
 
-const KNOWN_SOURCES: readonly NewsSource[] = ['europa-press', 'expansion', 'commemorations'];
+const KNOWN_SOURCES: readonly NewsSource[] = ['europa-press', 'expansion', 'commemorations', 'motorsport', 'nba'];
 
 describe('registro de feeds de noticias', () => {
   const definitions = NEWS_FEEDS.map((feed) => ({ feed, ...NEWS_FEED_DEFINITIONS[feed] }));
