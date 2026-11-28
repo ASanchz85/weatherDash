@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { IN_MEMORY_DATABASE, openDatabase, type SqliteDatabase } from './database.js';
+import { IN_MEMORY_DATABASE, openDatabase, SCHEMA_VERSION, type SqliteDatabase } from './database.js';
 import { createSqliteSnapshotStorage } from './sqlite-snapshot-storage.js';
 
 const databases: SqliteDatabase[] = [];
@@ -34,7 +34,7 @@ describe('openDatabase', () => {
     open(path).close();
     const reopened = open(path);
 
-    expect(reopened.pragma('user_version', { simple: true })).toBe(4);
+    expect(reopened.pragma('user_version', { simple: true })).toBe(SCHEMA_VERSION);
     expect(reopened.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").pluck().all()).toEqual(
       expect.arrayContaining(['snapshots', 'news']),
     );

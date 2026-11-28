@@ -1,7 +1,26 @@
-/** Los feeds de noticias; el orden en que se muestran en el ciclo es `NEWS_CYCLE_ORDER`. */
-export const NEWS_FEED_IDS = ['national', 'international', 'economy', 'markets', 'commemorations'] as const;
+interface NewsFeedDefinition {
+  /** Etiqueta propia del feed; no coincide necesariamente con la categoría que publica el proveedor. */
+  label: string;
+  /** Proveedor que publica el feed; es el que firma el pie de foto del hero. */
+  source: string;
+  /** Nombre (sin extensión) del vídeo de transición en assets/video. */
+  video: string;
+}
 
-export type NewsFeedId = (typeof NEWS_FEED_IDS)[number];
+/** Fuente única de los feeds de noticias; el orden en que se muestran en el ciclo es `NEWS_CYCLE_ORDER`. */
+export const NEWS_FEEDS = {
+  national: { label: 'Nacional', source: 'Europa Press', video: 'news-national' },
+  international: { label: 'Internacional', source: 'Europa Press', video: 'news-international' },
+  economy: { label: 'Economía', source: 'Expansión', video: 'news-economy' },
+  markets: { label: 'Mercados', source: 'Expansión', video: 'news-stocks-and-markets' },
+  commemorations: { label: 'Efemérides', source: 'Wikipedia', video: 'commemorations' },
+  motorsport: { label: 'Motor', source: 'Motorsport.com', video: 'news_motorsport' },
+  nba: { label: 'NBA', source: 'NBAManiacs', video: 'news_basketball' },
+} as const satisfies Record<string, NewsFeedDefinition>;
+
+export type NewsFeedId = keyof typeof NEWS_FEEDS;
+
+export const NEWS_FEED_IDS = Object.keys(NEWS_FEEDS) as readonly NewsFeedId[];
 
 /** Orden de los bloques de noticias en el ciclo: las efemérides se intercalan cada dos bloques de noticias. */
 export const NEWS_CYCLE_ORDER = [
@@ -11,25 +30,10 @@ export const NEWS_CYCLE_ORDER = [
   'economy',
   'markets',
   'commemorations',
+  'motorsport',
+  'nba',
+  'commemorations',
 ] as const satisfies readonly NewsFeedId[];
-
-/** Etiqueta propia de cada feed; no coincide necesariamente con la categoría que publica el proveedor. */
-export const NEWS_FEED_LABELS: Readonly<Record<NewsFeedId, string>> = {
-  national: 'Nacional',
-  international: 'Internacional',
-  economy: 'Economía',
-  markets: 'Mercados',
-  commemorations: 'Efemérides',
-};
-
-/** Proveedor que publica cada feed; es el que firma el pie de foto del hero. */
-export const NEWS_FEED_SOURCES: Readonly<Record<NewsFeedId, string>> = {
-  national: 'Europa Press',
-  international: 'Europa Press',
-  economy: 'Expansión',
-  markets: 'Expansión',
-  commemorations: 'Wikipedia',
-};
 
 export interface NewsItem {
   id: number;

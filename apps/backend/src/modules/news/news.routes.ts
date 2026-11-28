@@ -1,16 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify';
 
+import { isNewsFeed } from './news.feeds.js';
 import type { NewsService } from './news.service.js';
-import { NEWS_FEEDS, type NewsFeed } from './news.types.js';
 
 const NOT_FOUND = 404;
 
 export interface NewsRoutesOptions {
   newsService: NewsService;
-}
-
-function isNewsFeed(value: string): value is NewsFeed {
-  return (NEWS_FEEDS as readonly string[]).includes(value);
 }
 
 export const newsRoutes: FastifyPluginAsync<NewsRoutesOptions> = async (app, { newsService }) => {

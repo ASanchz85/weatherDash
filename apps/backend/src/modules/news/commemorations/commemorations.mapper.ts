@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { cleanText } from '../expansion/expansion.sanitizer.js';
+import { cleanText } from '../news.sanitizer.js';
 import type { LocalDate } from '../news.retention.js';
 import type { ParsedNewsItem } from '../news.types.js';
 import { pageSchema, pickPhoto, type WikipediaPage } from './commemorations.photo.js';

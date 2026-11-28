@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { dropDuplicateLinks, normalizeLink } from './expansion.dedupe.js';
+import { dropDuplicateLinks, normalizeLink } from './news.dedupe.js';
 
 describe('normalizeLink', () => {
   it('quita fragmento, parámetros de seguimiento y barra final', () => {

@@ -2,6 +2,13 @@ import { resolve } from 'node:path';
 
 import { z } from 'zod';
 
+import {
+  mapFeeds,
+  NEWS_FEED_DEFINITIONS,
+  NEWS_FEEDS,
+  type NewsFeed,
+  type NewsFeedEnvVar,
+} from '../modules/news/news.feeds.js';
 import { DEFAULT_DATABASE_PATH, FRONTEND_DIST_PATH, ROOT_PATH } from './paths.js';
 
 const DEFAULT_PORT = 3000;
@@ -19,14 +26,6 @@ const DEFAULT_NEWS_ITEM_DURATION_MS = 60 * 1000;
 const MIN_NEWS_ITEM_DURATION_MS = 5 * 1000;
 const DEFAULT_NEWS_ROTATION_SIZE = 5;
 const MAX_NEWS_ROTATION_SIZE = 20;
-const DEFAULT_NEWS_FEED_URLS = {
-  national: 'https://www.europapress.es/rss/rss.aspx?ch=66',
-  international: 'https://www.europapress.es/rss/rss.aspx?ch=69',
-  economy: 'https://e00-expansion.uecdn.es/rss/economia.xml',
-  markets: 'https://e00-expansion.uecdn.es/rss/mercados.xml',
-  // {MM} y {DD} se sustituyen por el mes y el día locales de hoy.
-  commemorations: 'https://es.wikipedia.org/api/rest_v1/feed/onthisday/events/{MM}/{DD}',
-} as const;
 
 /** Las variables vacías en .env se tratan como no definidas. */
 function blankToUndefined(value: unknown): unknown {
@@ -38,17 +37,18 @@ const optionalCoordinate = (min: number, max: number) =>
   z.preprocess(blankToUndefined, z.coerce.number().min(min).max(max).optional());
 const feedUrl = (fallback: string) => z.preprocess(blankToUndefined, z.url().default(fallback));
 
-/** Pantallas que se pueden fijar con UI_PINNED_SCREEN; `0` las muestra todas. Los feeds deben coincidir con NEWS_FEEDS. */
-const UI_SCREENS = [
+/** Pantallas que se pueden fijar con UI_PINNED_SCREEN; `0` las muestra todas. */
+export type UiScreen = 'weather-1' | 'weather-2' | `news-${NewsFeed}`;
+const UI_SCREENS: readonly UiScreen[] = [
   'weather-1',
   'weather-2',
-  'news-national',
-  'news-international',
-  'news-economy',
-  'news-markets',
-  'news-commemorations',
-] as const;
-export type UiScreen = (typeof UI_SCREENS)[number];
+  ...NEWS_FEEDS.map((feed): UiScreen => `news-${feed}`),
+];
+
+/** Una variable de entorno con la URL de cada feed, tomada del registro de feeds. */
+const newsFeedUrlSchemas = Object.fromEntries(
+  NEWS_FEEDS.map((feed) => [NEWS_FEED_DEFINITIONS[feed].envVar, feedUrl(NEWS_FEED_DEFINITIONS[feed].defaultUrl)]),
+) as Record<NewsFeedEnvVar, ReturnType<typeof feedUrl>>;
 
 const envSchema = z
   .object({
@@ -91,11 +91,7 @@ const envSchema = z
       z.coerce.number().int().min(MIN_NEWS_ITEM_DURATION_MS).default(DEFAULT_NEWS_ITEM_DURATION_MS),
     ),
     UI_PINNED_SCREEN: z.preprocess(blankToUndefined, z.enum(['0', ...UI_SCREENS]).default('0')),
-    NEWS_FEED_NATIONAL_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.national),
-    NEWS_FEED_INTERNATIONAL_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.international),
-    NEWS_FEED_ECONOMY_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.economy),
-    NEWS_FEED_MARKETS_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.markets),
-    NEWS_FEED_COMMEMORATIONS_URL: feedUrl(DEFAULT_NEWS_FEED_URLS.commemorations),
+    ...newsFeedUrlSchemas,
     NEWS_REFRESH_INTERVAL: z.preprocess(
       blankToUndefined,
       z.coerce.number().int().min(MIN_REFRESH_INTERVAL_MS).default(ONE_HOUR_MS),
@@ -138,7 +134,7 @@ export interface UiConfig {
 }
 
 export interface NewsConfig {
-  feedUrls: { national: string; international: string; economy: string; markets: string; commemorations: string };
+  feedUrls: Record<NewsFeed, string>;
   refreshIntervalMs: number;
   requestTimeoutMs: number;
   /** Noticias de cada rotación de un feed: las que elige la base de datos y las que muestra la card lateral. */
@@ -195,13 +191,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       requestTimeoutMs: parsed.WEATHER_REQUEST_TIMEOUT,
     },
     news: {
-      feedUrls: {
-        national: parsed.NEWS_FEED_NATIONAL_URL,
-        international: parsed.NEWS_FEED_INTERNATIONAL_URL,
-        economy: parsed.NEWS_FEED_ECONOMY_URL,
-        markets: parsed.NEWS_FEED_MARKETS_URL,
-        commemorations: parsed.NEWS_FEED_COMMEMORATIONS_URL,
-      },
+      feedUrls: mapFeeds((feed) => parsed[NEWS_FEED_DEFINITIONS[feed].envVar]),
       refreshIntervalMs: parsed.NEWS_REFRESH_INTERVAL,
       requestTimeoutMs: parsed.WEATHER_REQUEST_TIMEOUT,
       rotationSize: parsed.NEWS_ROTATION_SIZE,

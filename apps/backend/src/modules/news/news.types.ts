@@ -1,8 +1,6 @@
-/** El orden es el del ciclo de rotación del dashboard. */
-export const NEWS_FEEDS = ['national', 'international', 'economy', 'markets', 'commemorations'] as const;
+import type { NewsFeed } from './news.feeds.js';
 
-/** Origen de la petición; es independiente de la categoría que publica el proveedor en cada noticia. */
-export type NewsFeed = (typeof NEWS_FEEDS)[number];
+export { NEWS_FEEDS, type NewsFeed } from './news.feeds.js';
 
 /** Noticia normalizada a partir de un `item` del RSS. */
 export interface ParsedNewsItem {
@@ -20,6 +18,11 @@ export interface ParsedNewsItem {
 export interface NewsItem extends ParsedNewsItem {
   id: number;
   feed: NewsFeed;
+}
+
+export interface NewsProvider {
+  /** Descarga el feed y devuelve sus noticias válidas; las que no se pueden mostrar (p. ej. sin imagen) se descartan. */
+  fetchFeed(url: string): Promise<ParsedNewsItem[]>;
 }
 
 /** Noticia tal y como la entrega la API. */

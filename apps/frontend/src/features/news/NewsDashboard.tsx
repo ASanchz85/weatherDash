@@ -1,5 +1,5 @@
 import { DashboardLayout } from '../../components/DashboardLayout';
-import { NEWS_FEED_SOURCES } from '../../types/news';
+import { NEWS_FEEDS } from '../../types/news';
 import { RotatingView } from '../rotation/RotatingView';
 import type { ActiveNews } from '../rotation/useDashboardCycle';
 import type { WeatherState } from '../dashboard/useDashboardData';
@@ -16,7 +16,7 @@ interface NewsDashboardProps {
 
 export function NewsDashboard({ news, weather }: NewsDashboardProps) {
   const { rotation, activeIndex } = news;
-  const source = NEWS_FEED_SOURCES[rotation.feed];
+  const { source } = NEWS_FEEDS[rotation.feed];
   const Hero = rotation.feed === 'commemorations' ? CommemorationHero : NewsHero;
   // Cada noticia es una vista: al cambiar de noticia la foto y el texto se funden juntos.
   const heroViews = rotation.items.map((item) => ({
